@@ -4,16 +4,17 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { Link,router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 ///////////////////////////////////////////////////////////////
-import { auth } from '../firebaseConfig';
+import { auth,firestore } from '../firebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 ///////////////////////////////////////////////////////////////
 import Animated, { useSharedValue, withSpring, useAnimatedStyle } from 'react-native-reanimated';
 import IconContaiener from '../screens/IconContainer'
+import useUserStore from '../store';
+import { doc,getDoc,setDoc } from 'firebase/firestore';
 
 
 const Register = () => {
-    const [email,setEmail] = useState('')
-    const [password,setPassword] = useState('')
+    const {email, setEmail, password, setPassword,userName,setUserName,setFirstName,setLastName} = useUserStore();
     //////////////////////////////////////////////////////////////
     const { width, height } = useWindowDimensions();
     //////////////////////////////////////////////////////////////
@@ -71,14 +72,31 @@ const Register = () => {
     };
 
     const login = async() => {
-        try{
+        try {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
-            console.log('User registered successfully', user);
+    
+            console.log('User logged in successfully', user);
+    
+            // Firestore'dan kullanıcı verilerini çek
+            const userDocRef = doc(firestore, 'users', email);
+            const userDoc = await getDoc(userDocRef);
+    
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                setFirstName(userData.firstName);
+                setLastName(userData.lastName);
+                setUserName(userData.userName);
+    
+                console.log('User data fetched successfully', userData);
+            } else {
+                console.log('No such document!');
+            }
+    
             await AsyncStorage.setItem('@userRegistered', 'true');
-            router.push('/HomeScreen');
-        }catch(e){
-            console.log('error signing in', e);
+            router.push('/Home');
+        } catch (e) {
+            console.log('Error signing in', e);
         }
     }
     //////////////////////////////////////////////////////////////
@@ -127,9 +145,9 @@ const Register = () => {
                     <Text style={{ color: 'rgba(255,255,255,0.9)', alignSelf: 'center', marginTop: 20 }}>Don't have an account? <Link href="/Register/Register"><Text style={{ color: 'rgba(255,255,255,1)', fontWeight: 'bold' }}>Sign Up</Text></Link></Text>
                 </View>
                 {/* Footer */}
-                <Animated.View style={[footerStyle,{position:'absolute'}]}>
+                {/*<Animated.View style={[footerStyle,{position:'absolute'}]}>
                 <IconContaiener/>
-                </Animated.View>
+                </Animated.View>*/}
             </View>
         </KeyboardAvoidingView>
     );

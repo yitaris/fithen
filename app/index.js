@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Onboarding from './Onboarding';
-import HomeScreen from './HomeScreen';
 import SplashScreen from '../components/SplashScreen';
 import Login from './Login';
 import Register from './Register/Register';
+import Home from './Home';
 
 const App = () => {
   const [animationFinished, setAnimationFinished] = useState(false);
@@ -42,7 +42,7 @@ const App = () => {
   return (
     <View style={styles.container}>
     {userRegistered ? (
-      <HomeScreen />
+      <Home />
     ) : userLogout ? (
       <Login />
     ) : (

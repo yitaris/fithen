@@ -3,15 +3,16 @@ import { View, Text, StyleSheet, useWindowDimensions, TouchableOpacity, Image, T
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/FontAwesome';
 ///////////////////////////////////////////////////////////////
-import { auth } from '../../firebaseConfig'
+import { firestore,auth } from '../../firebaseConfig'
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 ///////////////////////////////////////////////////////////////
 import Animated, { useSharedValue, withSpring, useAnimatedStyle } from 'react-native-reanimated';
 import { Link,router } from 'expo-router';
 import useUserStore from '../../store';
+import { doc,setDoc,getDoc } from 'firebase/firestore';
 
 const RegisterSecond = () => {
-    const { userName,setUserName,email,password } = useUserStore();
+    const { userName,setUserName,email,password,firstName,lastName } = useUserStore();
     //////////////////////////////////////////////////////////////
     const { width, height } = useWindowDimensions();
     //////////////////////////////////////////////////////////////
@@ -65,6 +66,11 @@ const RegisterSecond = () => {
     const createAccount = async () => {
         try {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          await setDoc(doc(firestore,'users',email), {
+            email:email,
+            firstName:firstName,
+            lastName:lastName,
+          });
           const user = userCredential.user;
           console.log('User registered successfully', user);
           
@@ -72,7 +78,7 @@ const RegisterSecond = () => {
           await AsyncStorage.setItem('@userRegistered', 'true');
           
           // HomeScreen'e yönlendirme
-          router.push('/HomeScreen');
+          router.push('/Home');
         } catch (error) {
           console.log('Error creating user:', error);
         }

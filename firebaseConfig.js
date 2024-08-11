@@ -1,15 +1,21 @@
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getStorage } from 'firebase/storage'; // Firebase Storage modülünü import edin
+import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCBTOk0C46XRVp6HsTCBQlsV-TYBYXwcz8",
-  authDomain: "yitaapp.firebaseapp.com",
-  databaseURL: "https://yitaapp-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "yitaapp",
-  storageBucket: "yitaapp.appspot.com",
-  messagingSenderId: "422420697951",
-  appId: "1:422420697951:web:c4fc912426280b2b871cea"
-};
+    apiKey: "AIzaSyBsr951PgYO5-U8WIMi8NhYRrKdCNyCINU",
+    authDomain: "fithen-92021.firebaseapp.com",
+    projectId: "fithen-92021",
+    storageBucket: "fithen-92021.appspot.com",
+    messagingSenderId: "195521370075",
+    appId: "1:195521370075:web:b8533a7840bf5c87a979fe",
+    measurementId: "G-438VDMF5GW"
+  };
 
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+const auth = getAuth(app);
+const firestore = getFirestore(app);
+const storage = getStorage(app); // Firebase Storage'ı initialize edin
+const db = getFirestore(app);
+export { auth, db, firestore, storage };

@@ -1,6 +1,11 @@
 import create from 'zustand';
+import { persist } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const useUserStore = create((set) => ({
+const useUserStore = create(
+  persist(
+    (set) => ({
+  
   firstName: '',
   lastName: '',
   day: '',
@@ -19,6 +24,13 @@ const useUserStore = create((set) => ({
   setEmail: (email) => set({ email }),
   setPassword: (password) => set({ password }),
   setUserName: (userName) => set({ userName }),
-}));
 
+}),
+
+{
+  name: 'user-storage', // Depolama alanında kullanılacak anahtar adı
+  getStorage: () => AsyncStorage, // Eğer React Native'de AsyncStorage kullanıyorsanız
+}
+  )
+);
 export default useUserStore;
