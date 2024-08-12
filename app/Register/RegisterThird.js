@@ -84,6 +84,7 @@ const RegisterThird = () => {
                             placeholder="Email"
                             placeholderTextColor="rgba(255,255,255,0.7)"
                             value={email}
+                            keyboardType='email-address'
                             onChangeText={(text) => { setEmail(text) }}
                             onFocus={handleFocus}
                             onBlur={handleBlur}

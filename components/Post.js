@@ -53,11 +53,11 @@ const Posts = () => {
 
 const styles = StyleSheet.create({
     imageContainer: {
-        borderWidth: 7,
-        borderColor: 'rgba(142, 50, 51, .3)',
+        borderWidth: 0,
+        borderColor: 'rgba(142, 50, 51, .0)',
         width: '90%',
+        height:350,
         alignSelf: 'center',
-        height: 350,
         borderRadius: 24,
         marginVertical: 10,
         overflow: 'hidden',

@@ -6,6 +6,7 @@ import SplashScreen from '../components/SplashScreen';
 import Login from './Login';
 import Register from './Register/Register';
 import Home from './Home';
+import BottomTabs from "../components/BottomTabs";
 
 const App = () => {
   const [animationFinished, setAnimationFinished] = useState(false);
@@ -49,7 +50,7 @@ const App = () => {
       <Onboarding />
     )}
   </View>
-  
+
   );
 };
 

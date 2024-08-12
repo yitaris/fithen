@@ -1,37 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Button, Image, Alert, Text } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { storage, firestore, auth } from '../firebaseConfig';
-import { ref, uploadBytes, getDownloadURL, doc, getDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc } from 'firebase/firestore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import useUserStore from '../store';
 
 const Plus = () => {
     const [imageUri, setImageUri] = useState(null);
-    const { email, firstName, day, setFirstName } = useUserStore(); // Zustand'dan kullanıcı bilgilerini alın
-    const [set,setSet] = useState(true);
-    useEffect(() => {
-        const fetchUserData = async () => {
-            if (set) {
-                try {
-                    const docRef = doc(firestore, "users", email);
-                    const docData = await getDoc(docRef);
-
-                    if (docData.exists()) {
-                        setFirstName(docData.data().firstName);
-                        console.log("First Name: ", docData.data().firstName);
-                    } else {
-                        console.log("No such document!");
-                    }
-                } catch (error) {
-                    console.error("Error fetching user data: ", error);
-                }
-            }
-        };
-
-        fetchUserData();
-    }, [email]);
+    const { email, firstName, day } = useUserStore();
 
     const pickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -48,7 +26,7 @@ const Plus = () => {
 
         if (!result.canceled) {
             setImageUri(result.assets[0].uri);
-            uploadImage(result.assets[0].uri);
+            await uploadImage(result.assets[0].uri); // await ekleyin
         }
     };
 
@@ -57,37 +35,35 @@ const Plus = () => {
     };
 
     const uploadImage = async (uri) => {
-        const user = auth.currentUser;
-        if (user) {
-            const email = sanitizeEmail(user.email);
-            const displayName = firstName || "Anonymous"; // Zustand'dan kullanıcı adını alın
+       
+            const displayName = firstName || "Anonymous";
 
-            const response = await fetch(uri);
-            const blob = await response.blob();
+            try {
+                const response = await fetch(uri);
+                const blob = await response.blob();
 
-            const filename = uri.substring(uri.lastIndexOf('/') + 1);
-            const storageRef = ref(storage, `posts/${email}/images/${filename}`);
+                const filename = uri.substring(uri.lastIndexOf('/') + 1);
+                const storageRef = ref(storage, `posts/${email}/images/${filename}`);
 
-            uploadBytes(storageRef, blob).then(async (snapshot) => {
-                console.log('Uploaded a blob or file!', snapshot);
-                const downloadURL = await getDownloadURL(snapshot.ref);
+                await uploadBytes(storageRef, blob);
+                const downloadURL = await getDownloadURL(storageRef);
+
                 console.log('File available at', downloadURL);
 
-                // Firestore'a fotoğraf URL'sini ve kullanıcı adını ekleyin
                 await addDoc(collection(firestore, 'photos'), {
-                    userEmail: user.email,
+                    userEmail:email,
                     userName: displayName,
                     imageUrl: downloadURL,
                     createdAt: new Date(),
                 });
-            }).catch((error) => {
+
+                Alert.alert('Success', 'Image uploaded successfully!');
+
+            } catch (error) {
                 console.error('Upload failed:', error);
                 Alert.alert('Upload failed', error.message);
-            });
-        } else {
-            console.error('No user is signed in.');
+            }
         }
-    };
 
     return (
         <SafeAreaView>

@@ -6,25 +6,17 @@ import HomeScreen from './HomeScreen'
 import SplashScreen from '../components/SplashScreen'
 import Login from './Login'
 import Register from './Register/Register'
-import { Stack } from 'expo-router';
+import BottomTabs from '../components/BottomTabs';
+import { Stack,Slot } from 'expo-router';
 
 const App = () => {
 
   return (
-    <Stack screenOptions={{
-      gestureEnabled: true,
-      headerShown: false,
-    }}>
-      <Stack.Screen name='index' options={{
-        title: 'home',
-      }} />
-      <Stack.Screen name='Login' options={{
-        title: 'log in',
-      }} />
-      <Stack.Screen name='Register/Register' options={{
-        title: 'Register',
-      }} />
-    </Stack>
+      <>
+        <Slot />
+        <BottomTabs/>
+      </>
+
   )
 }
 const styles = StyleSheet.create({

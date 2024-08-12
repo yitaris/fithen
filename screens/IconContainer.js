@@ -7,77 +7,76 @@ const IconContainer = () => {
   const [expanded, setExpanded] = useState(false);
 
   // Shared values for animation
-  const icon1Pos = useSharedValue(0);
-  const icon1PosX = useSharedValue(0);
+  const width = useSharedValue(60);
+  const height = useSharedValue(60);
+  const borderRadius = useSharedValue(30);
 
-  const icon2Pos = useSharedValue(0);
-  const icon2PosX = useSharedValue(0);
-
-  const icon3Pos = useSharedValue(0);
-  const icon3PosX = useSharedValue(0);
-
-
+  // Positions for icons
+  const iconPositions = useSharedValue([{ x: 0, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 }]);
 
   // Toggle the expansion and contraction
   const handlePress = () => {
     if (expanded) {
-      icon1Pos.value = withSpring(0, { damping: 10, stiffness: 100 });
-      icon1PosX.value = withSpring(0, { damping: 10, stiffness: 100 });
-
-      icon2Pos.value = withSpring(0, { damping: 10, stiffness: 100 });
-      icon2PosX.value = withSpring(0, { damping: 10, stiffness: 100 });
-
-      icon3Pos.value = withSpring(0, { damping: 10, stiffness: 100 });
-      icon3PosX.value = withSpring(0, { damping: 10, stiffness: 100 });
+      width.value = withSpring(60);
+      height.value = withSpring(60);
+      borderRadius.value = withSpring(30);
+      iconPositions.value = [{ x: 0, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 }];
     } else {
-      icon1Pos.value = withSpring(90, { damping: 10, stiffness: 100 }); // Move up-left
-      icon1PosX.value = withSpring(0, { damping: 10, stiffness: 100 }); // Move up-left
-
-      icon2Pos.value = withSpring(90, { damping: 10, stiffness: 100 }); // Move up
-      icon2PosX.value = withSpring(-90, { damping: 10, stiffness: 100 }); // Move up
-
-      icon3Pos.value = withSpring(0, { damping: 10, stiffness: 100 });   // Center
-      icon3PosX.value = withSpring(-90, { damping: 10, stiffness: 100 });   // Center
-
+      width.value = withSpring(180);
+      height.value = withSpring(60);
+      borderRadius.value = withSpring(20);
+      iconPositions.value = [
+        { x: -50, y: 0 },
+        { x: 50, y: 0 },
+        { x: -100, y: 0 },
+        { x: 100, y: 0 },
+      ];
     }
     setExpanded(!expanded);
   };
 
+  // Animated style for the container
+  const animatedContainerStyle = useAnimatedStyle(() => {
+    return {
+      width: width.value,
+      height: height.value,
+      borderRadius: borderRadius.value,
+    };
+  });
+
   // Animated styles for each icon
-  const animatedStyle1 = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateX: icon1PosX.value }, { translateY: -icon1Pos.value }],
-    };
-  });
-  const animatedStyle2 = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateY: -icon2Pos.value },{translateX:icon2PosX.value}],
-    };
-  });
-  const animatedStyle3 = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateY: -icon3Pos.value },{translateX:icon3PosX.value}],
-    };
-  });
-  
+  const animatedIconStyles = iconPositions.value.map((position, index) =>
+      useAnimatedStyle(() => {
+        return {
+          transform: [
+            { translateX: withSpring(position.x) },
+            { translateY: withSpring(position.y) },
+          ],
+          opacity: expanded ? withSpring(1) : withSpring(0),
+        };
+      })
+  );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.circleContainer}>
-        <TouchableOpacity onPress={handlePress} style={styles.centerButton}>
-          <Icon name="location-arrow" size={30} color="#fff"/>
-        </TouchableOpacity>
-        <Animated.View style={[styles.icon, animatedStyle1]}>
-          <Icon name="google" size={30} color="#fff" />
-        </Animated.View>
-        <Animated.View style={[styles.icon, animatedStyle2]}>
-          <Icon name="facebook" size={30} color="#fff" />
-        </Animated.View>
-        <Animated.View style={[styles.icon, animatedStyle3]}>
-          <Icon name="twitter" size={30} color="#fff" />
+      <View style={styles.container}>
+        <Animated.View style={[styles.animatedContainer, animatedContainerStyle]}>
+          <TouchableOpacity onPress={handlePress} style={styles.centerButton}>
+            <Icon name="ellipsis-h" size={30} color="#fff" />
+          </TouchableOpacity>
+          <Animated.View style={[styles.icon, animatedIconStyles[0]]}>
+            <Icon name="google" size={30} color="#fff" />
+          </Animated.View>
+          <Animated.View style={[styles.icon, animatedIconStyles[1]]}>
+            <Icon name="facebook" size={30} color="#fff" />
+          </Animated.View>
+          <Animated.View style={[styles.icon, animatedIconStyles[2]]}>
+            <Icon name="twitter" size={30} color="#fff" />
+          </Animated.View>
+          <Animated.View style={[styles.icon, animatedIconStyles[3]]}>
+            <Icon name="instagram" size={30} color="#fff" />
+          </Animated.View>
         </Animated.View>
       </View>
-    </View>
   );
 };
 
@@ -87,9 +86,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  circleContainer: {
-    width: 200,
-    height: 200,
+  animatedContainer: {
+    backgroundColor: 'red',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -98,14 +96,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 50,
     height: 50,
-    left:30,
-    top:30,
-    borderRadius: 30,
-    backgroundColor: 'red',
+    borderRadius: 25,
+    backgroundColor: 'blue',
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 3,
-    transform: [{ rotate: '-90deg' }],  // Rotate 180 degrees to the left
   },
   icon: {
     position: 'absolute',

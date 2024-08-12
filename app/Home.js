@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useRef } from "react";
-import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, Modal, ImageBackground, ActivityIndicator, Animated, Easing } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, Modal, ImageBackground, RefreshControl, Animated, Easing } from "react-native";
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { auth } from "../firebaseConfig"; // config.js'den import
 import useUserStore from '../store'; // Import the Zustand store
 import Posts from "../components/Post";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Link,router } from "expo-router";
+import BottomTabs from "../components/BottomTabs";
 
 const Home = () => {
+    const [refreshing, setRefreshing] = React.useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedImage, setSelectedImage] = useState(null);
     const [photo, setPhoto] = useState(null); // Başlangıçta null, çünkü tek bir fotoğraf göstereceğiz
@@ -17,7 +20,14 @@ const Home = () => {
     const [sideBarVisible, setSideBarVisible] = useState(false);
 
     const navigation = useNavigation();
-    const { name } = useUserStore();
+    const { firstName } = useUserStore();
+
+    const onRefresh = React.useCallback(() => {
+        setRefreshing(true);
+        setTimeout(() => {
+          setRefreshing(false);
+        }, 2000);
+      }, []);
 
     const clearOnboarding = async () => {
         try {
@@ -65,33 +75,39 @@ const Home = () => {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <ScrollView>
+            <ScrollView
+            refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
+            >
                 <View style={styles.headerContainer}>
                     <View style={{ flexDirection: 'row', justifyContent: 'flex-end', borderRadius: 100, paddingVertical: 2 }}>
                         <FontAwesome name={'heartbeat'} size={30} color={'#bf2929'} style={styles.icons} />
-                        <FontAwesome name={'heartbeat'} size={30} color={'#bf2929'} style={styles.icons} />
+                        <FontAwesome6 name={'message'} size={30} color={'#bf2929'} style={styles.icons} />
                     </View>
                 </View>
                 <View style={styles.storyCt}>
                     <ScrollView horizontal={true}>
                         <View style={{ justifyContent: 'center', alignItems: 'center' }}>
-                            <View style={{ borderWidth: 2, borderRadius: 32, borderColor: '#142037' }}>
+                            <View style={{ borderRadius: 32,  }}>
                                 <View style={[styles.myStory, { backgroundColor: 'rgba(142, 50, 51, .4)' }]}>
-                                    <Text style={{ color: 'white', fontSize: 30 }}>+</Text>
+                                    <TouchableOpacity onPress={() => {router.push('/Plus')}}>
+                                        <Text style={{ color: 'white', fontSize: 30 }}>+</Text>
+                                    </TouchableOpacity>
                                 </View>
                             </View>
-                            <Text style={{ color: 'white', marginTop: 4, fontSize: 15 }}>Add Story</Text>
+                            <Text style={{ color: 'white', marginTop: 4, fontSize: 15 }}>add story</Text>
                         </View>
-                        <View style={styles.userStory}>
-                            <View style={{ borderWidth: 3, borderRadius: 32, }}>
-                                <View style={styles.myStory}>
-                                    <Image source={require('../image/diet.png')} style={styles.userStoryImage} />
+                            <View style={styles.userStory}>
+                                <View style={{  borderRadius: 32, }}>
+                                    <View style={styles.myStory}>
+                                        <Image source={require('../image/diet.png')} style={styles.userStoryImage} />
+                                    </View>
                                 </View>
+                                <Text style={{ color: 'white', marginTop: 4, fontSize: 15 }}>Samera</Text>
                             </View>
-                            <Text style={{ color: 'white', marginTop: 4, fontSize: 15 }}>Samera</Text>
-                        </View>
                         <View style={styles.userStory}>
-                            <View style={{ borderWidth: 3, borderRadius: 32, }}>
+                            <View style={{ borderRadius: 32, }}>
                                 <View style={styles.myStory}>
                                     <Image source={require('../image/running.png')} style={styles.userStoryImage} />
                                 </View>
@@ -99,7 +115,7 @@ const Home = () => {
                             <Text style={{ color: 'white', marginTop: 4, fontSize: 15 }}>Dream</Text>
                         </View>
                         <View style={styles.userStory}>
-                            <View style={{ borderWidth: 3, borderRadius: 32, }}>
+                            <View style={{ borderRadius: 32, }}>
                                 <View style={styles.myStory}>
                                     <Image source={require('../image/football.png')} style={styles.userStoryImage} />
                                 </View>
@@ -107,7 +123,7 @@ const Home = () => {
                             <Text style={{ color: 'white', marginTop: 4, fontSize: 15 }}>Gansta</Text>
                         </View>
                         <View style={styles.userStory}>
-                            <View style={{ borderWidth: 3, borderRadius: 32, }}>
+                            <View style={{ borderRadius: 32, }}>
                                 <View style={styles.myStory}>
                                     <Image source={require('../image/trainer.png')} style={styles.userStoryImage} />
                                 </View>
@@ -115,7 +131,7 @@ const Home = () => {
                             <Text style={{ color: 'white', marginTop: 4, fontSize: 15 }}>Samera</Text>
                         </View>
                         <View style={styles.userStory}>
-                            <View style={{ borderWidth: 3, borderRadius: 32, borderColor: '#bf2929' }}>
+                            <View style={{ borderRadius: 32, }}>
                                 <View style={styles.myStory}>
                                     <Image source={require('../image/trainer.png')} style={styles.userStoryImage} />
                                 </View>
@@ -123,7 +139,7 @@ const Home = () => {
                             <Text style={{ color: 'white', marginTop: 4, fontSize: 15 }}>Dream</Text>
                         </View>
                         <View style={styles.userStory}>
-                            <View style={{ borderWidth: 3, borderRadius: 32, borderColor: '#d3a08b' }}>
+                            <View style={{  borderRadius: 32, }}>
                                 <View style={styles.myStory}>
                                     <Image source={require('../image/diet.png')} style={styles.userStoryImage} />
                                 </View>
@@ -136,12 +152,6 @@ const Home = () => {
                     <Posts />
                 </View>
             </ScrollView>
-            <TouchableOpacity onPress={clearOnboarding}>
-                <Text style={{color:'#fff',alignSelf:'center'}}>Log out</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => {router.push('/Plus')}}>
-                <Text style={{color:'#fff',alignSelf:'center',padding:20}}>+</Text>
-            </TouchableOpacity>
         </SafeAreaView>
     );
 }
@@ -149,7 +159,7 @@ const Home = () => {
 const styles = StyleSheet.create({
 
     safeArea: {
-        backgroundColor: '#1e1e1e',
+        backgroundColor: '#000',
         flex: 1
     },
     headerContainer: {
@@ -173,6 +183,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 10,
     },
+
     myStory: {
         justifyContent: 'center',
         alignItems: 'center',
@@ -180,27 +191,10 @@ const styles = StyleSheet.create({
         borderColor: '#bf2929',
         width: 70,
         height: 70,
-        backgroundColor: '#142037',
         borderRadius: 32,
     },
-
     userStoryImage: {
         width: 60, height: 60, borderRadius: 32
-    },
-    sideBar: {
-        paddingVertical: 10,
-        right: 0,
-        position: 'absolute',
-        top: '20%',
-        backgroundColor: 'rgba(255,255,255, 0.1)',
-        width: 80,
-        height: '60%',
-        borderTopLeftRadius: 20,
-        borderBottomLeftRadius: 20,
-        overflow: 'hidden',
-        alignItems: 'center',
-        justifyContent: 'space-evenly',
-
     },
     userStory: {
         justifyContent: 'center', alignItems: 'center', marginLeft: 10
@@ -222,10 +216,8 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         width: '100%',
         flexDirection: 'row',
-        alignItems: 'center',
         paddingHorizontal: 10,
         paddingVertical: 5,
-        alignItems: 'center',
     },
     icons:{
         margin:5,

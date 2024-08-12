@@ -121,12 +121,13 @@ const Register = () => {
                             placeholder="email"
                             placeholderTextColor="rgba(255,255,255,0.7)"
                             value={email}
+                            keyboardType='email-address'
                             onChangeText={(text) => { setEmail(text) }}
                             onFocus={handleFocus}
                             onBlur={handleBlur}
                         />
                     </View>
-                    <Text style={{ color: 'rgba(255,255,255,0.9)', alignSelf: 'baseline' }}>Surname</Text>
+                    <Text style={{ color: 'rgba(255,255,255,0.9)', alignSelf: 'baseline' }}>Password</Text>
                     <View style={styles.inputContainer}>
                         <TextInput
                             style={styles.input}

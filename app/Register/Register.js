@@ -110,6 +110,7 @@ const Register = () => {
                     <TouchableOpacity style={styles.button} onPress={()=>{router.push('/Register/RegisterSecond')}}>
                         <Text style={{ color: 'white', fontWeight: '500', fontSize: 20, textAlign: 'center' }}>Contuine  1/5</Text>
                     </TouchableOpacity>
+                    <Text style={{ color: 'rgba(255,255,255,0.9)', alignSelf: 'center', marginTop: 20 }}>Already have an account? <Link href="/Login"><Text style={{ color: 'rgba(255,255,255,1)', fontWeight: 'bold' }}>Sign In</Text></Link></Text>
                 </View>
                 {/* Footer */}
                 <Animated.View style={[footerStyle,{position:'absolute'}]}>

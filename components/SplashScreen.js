@@ -48,21 +48,21 @@ const SplashScreen = ({onAnimationFinish }) => {
           easing: Easing.bounce,
         });
       }, 0);
-  
+
       setTimeout(() => {
         longBoxAnim.value = withTiming(longCenterY, {
           duration: 1000,
           easing: Easing.bounce,
         });
       }, 500);
-  
+
       setTimeout(() => {
         midBoxAnim.value = withTiming(midCenterY, {
           duration: 1000,
           easing: Easing.bounce,
         });
       }, 800);
-  
+
       setTimeout(() => {
         longBoxAnim2.value = withTiming(longCenterY, {
           duration: 1000,
@@ -82,13 +82,13 @@ const SplashScreen = ({onAnimationFinish }) => {
           duration: 1000,
           easing: Easing.bounce,
         });
-  
+
         setTimeout(() => {
           heartRotate.value = withTiming(0, {
             duration: 500,
             easing: Easing.linear,
           });
-  
+
           setTimeout(() => {
             heartScale.value = withSequence(
               withTiming(1.5, { duration: 1000, easing: Easing.linear }),
@@ -101,7 +101,7 @@ const SplashScreen = ({onAnimationFinish }) => {
 
       setTimeout(() => {
         onAnimationFinish();
-      }, 7000);
+      }, 1000);
   }, []);
 
   const animatedShortBoxStyle = useAnimatedStyle(() => {
