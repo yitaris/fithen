@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from "expo-router";
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Image, useWindowDimensions, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome6';
@@ -8,7 +9,8 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { firestore } from '../firebaseConfig';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const Profile = () => {
+const UserProfile = () => {
+    const { firstName, userEmail } = useLocalSearchParams();
     const { width } = useWindowDimensions();
     const [selectedIcon, setSelectedIcon] = useState(null);
     const [images, setImages] = useState([]);
@@ -16,7 +18,6 @@ const Profile = () => {
     const [error, setError] = useState(null);
     const [refreshing, setRefreshing] = useState(false);
     const [postCount, setPostCount] = useState(0);
-    const { email, firstName } = useUserStore();
     const insets = useSafeAreaInsets();
 
     useEffect(() => {
@@ -26,7 +27,7 @@ const Profile = () => {
     const fetchImages = async () => {
         setLoading(true);
         try {
-            const q = query(collection(firestore, 'photos'), where('userEmail', '==', email));
+            const q = query(collection(firestore, 'photos'), where('userEmail', '==', userEmail));
             const querySnapshot = await getDocs(q);
 
             const imagesList = querySnapshot.docs.map(doc => doc.data().imageUrl);
@@ -69,8 +70,10 @@ const Profile = () => {
         ));
     };
 
+
+
     return (
-        <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: insets.bottom }}>
+        <ScrollView style={styles.container}>
             <View style={{ backgroundColor: 'black', height: 200 }}>
                 <Image
                     style={{ width: '100%', height: '100%' }}
@@ -135,10 +138,11 @@ const Profile = () => {
 
             <View style={styles.imageGrid}>
                 {renderImages()}
+
             </View>
         </ScrollView>
     );
-};
+}
 
 const styles = StyleSheet.create({
     container: {
@@ -200,4 +204,5 @@ const styles = StyleSheet.create({
     },
 });
 
-export default Profile;
+export default UserProfile;
+

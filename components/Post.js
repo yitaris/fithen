@@ -3,6 +3,7 @@ import { View, Image, FlatList, TouchableOpacity, StyleSheet, Text } from 'react
 import { BlurView } from 'expo-blur';
 import { collection, getDocs } from 'firebase/firestore';
 import { firestore } from '../firebaseConfig';
+import { router } from 'expo-router';
 
 const Posts = () => {
     const [images, setImages] = useState([]);
@@ -15,6 +16,7 @@ const Posts = () => {
             const imageItems = imagesSnapshot.docs.map(doc => ({
                 imageUrl: doc.data().imageUrl,
                 userName: doc.data().userName, // Assuming the userName field exists in the document
+                userEmail: doc.data().userEmail, // Assuming the email field exists in the document
             }));
             setImages(imageItems);
         };
@@ -35,7 +37,18 @@ const Posts = () => {
                 />
                 {selectedImageIndex === index &&
                     <BlurView intensity={30} tint='dark' style={styles.blurView}>
-                        <Text style={styles.userNameText}>{item.userName}</Text>
+                        <TouchableOpacity onPress={() => {
+                            router.push({
+                                pathname: '/UserProfile',
+                                params: {
+                                    firstName: item.userName,
+                                    userEmail: item.userEmail,
+                                }
+                            })
+                        }}>
+                            <Text style={styles.userNameText}>{item.userName}</Text>
+                            <Text style={styles.userNameText}>{item.userEmail}</Text>
+                        </TouchableOpacity>
                     </BlurView>
                 }
             </View>
@@ -56,7 +69,7 @@ const styles = StyleSheet.create({
         borderWidth: 0,
         borderColor: 'rgba(142, 50, 51, .0)',
         width: '90%',
-        height:350,
+        height: 350,
         alignSelf: 'center',
         borderRadius: 24,
         marginVertical: 10,
@@ -73,12 +86,12 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         height: '20%',
-        paddingLeft:10,
-        justifyContent: 'center', // Center the text
-        alignItems: 'flex-start', // Center the text
+        paddingLeft: 10,
+        justifyContent: 'center',
+        alignItems: 'flex-start',
     },
     userNameText: {
-        color: 'white', // Make the text white for better visibility
+        color: 'white',
         fontWeight: 'bold',
         fontSize: 20,
     }
