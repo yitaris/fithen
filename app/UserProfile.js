@@ -47,7 +47,7 @@ const UserProfile = () => {
     const fetchImages = async () => {
         setLoading(true);
         try {
-            const q = query(collection(firestore, 'photos'), where('userEmail', '==', userEmail));
+            const q = query(collection(firestore, 'post'), where('userEmail', '==', userEmail));
             const querySnapshot = await getDocs(q);
 
             const imagesList = querySnapshot.docs.map(doc => doc.data().imageUrl);
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
         marginTop: -50, // To move the profile image up
     },
     profileImage: {
-        borderWidth: 5,
+        borderWidth: 1,
         borderColor: 'white',
         width: 100,
         height: 100,

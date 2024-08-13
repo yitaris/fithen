@@ -128,7 +128,6 @@ const styles = StyleSheet.create({
         height: 70,
         borderRadius: 20,
         marginRight: 10,
-        borderWidth: 1,
     },
     emailText: {
         fontSize: 18,

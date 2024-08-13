@@ -136,33 +136,33 @@ const Profile = () => {
         const displayName = firstName || "Anonymous";
         const storage = getStorage();
         const profilePicturesRef = ref(storage, `posts/${email}/profilpicture/`);
-    
+
         try {
             // Delete all existing profile pictures before uploading the new one
             const listResult = await listAll(profilePicturesRef);
-    
+
             await Promise.all(listResult.items.map(itemRef => deleteObject(itemRef)));
-    
+
             // Upload the new image
             const response = await fetch(uri);
             const blob = await response.blob();
-    
+
             const filename = uri.substring(uri.lastIndexOf('/') + 1);
             const newProfileImageRef = ref(storage, `posts/${email}/profilpicture/${filename}`);
-    
+
             await uploadBytes(newProfileImageRef, blob);
             const downloadURL = await getDownloadURL(newProfileImageRef);
-    
+
             console.log('File available at', downloadURL);
             Alert.alert('Success', 'Image uploaded successfully!');
             setProfileImageUrl(downloadURL);
-    
+
         } catch (error) {
             console.error('Upload failed:', error);
             Alert.alert('Upload failed', error.message);
         }
     };
-    
+
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: insets.bottom }}>
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
         marginTop: -50, // To move the profile image up
     },
     profileImage: {
-        borderWidth: 5,
+        borderWidth: 1,
         borderColor: 'white',
         width: 100,
         height: 100,
