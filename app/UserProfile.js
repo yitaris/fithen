@@ -60,6 +60,14 @@ const UserProfile = () => {
     }
 
     const renderImages = () => {
+        if (images.length === 0) {
+            return (
+                <View style={styles.noImagesContainer}>
+                    <Text style={styles.noImagesText}>No photos available</Text>
+                </View>
+            );
+        }
+
         const itemWidth = width / 3 - 10; // Width for 3 items in a row
         const itemHeight = width / 3;     // Height to maintain aspect ratio
 
@@ -69,6 +77,7 @@ const UserProfile = () => {
             </View>
         ));
     };
+
 
 
 
@@ -202,6 +211,9 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginTop: 20,
     },
+    noImagesText:{
+        color:'white'
+    }
 });
 
 export default UserProfile;

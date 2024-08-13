@@ -26,7 +26,7 @@ const BottomTabs = () => {
         if (expanded) {
             boxWidth.value = withSpring(60, { damping: 20, stiffness: 90 });
             borderRadius.value = withSpring(30, { damping: 20, stiffness: 90 });
-            scale.value = withSpring(1.5, { damping: 20, stiffness: 90 });
+            scale.value = withSpring(1.3, { damping: 20, stiffness: 90 });
             rotation.value = withSpring(0, { damping: 20, stiffness: 90 });
             leftIconOffset.value = withTiming(-100, { duration: 300 });
             leftIconOffset2.value = withTiming(-100, { duration: 300 });
@@ -36,7 +36,7 @@ const BottomTabs = () => {
         } else {
             boxWidth.value = withSpring(260, { damping: 20, stiffness: 90 });
             borderRadius.value = withSpring(14, { damping: 20, stiffness: 90 });
-            scale.value = withSpring(1.2, { damping: 20, stiffness: 90 });
+            scale.value = withSpring(1, { damping: 20, stiffness: 90 });
             rotation.value = withSpring(45, { damping: 20, stiffness: 90 });
             leftIconOffset.value = withTiming(-50, { duration: 300 });
             leftIconOffset2.value = withTiming(-100, { duration: 300 });
@@ -94,7 +94,7 @@ const BottomTabs = () => {
         <View style={[styles.outerContainer, { bottom: insets.bottom + 20 }]}>
             <Animated.View style={[styles.container, animatedStyle]}>
                 <Animated.View style={[styles.sideIcon, leftIconStyle]}>
-                    <TouchableOpacity onPress={() => {router.push('/Home')}}>
+                    <TouchableOpacity onPress={() => {router.push('/Search')}}>
                         <Icon name={'search'} color={'#800000'} size={20} />
                     </TouchableOpacity>
                 </Animated.View>

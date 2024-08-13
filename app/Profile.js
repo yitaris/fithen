@@ -3,9 +3,11 @@ import { View, Text, StyleSheet, Image, useWindowDimensions, TouchableOpacity, S
 import Icon from 'react-native-vector-icons/FontAwesome6';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import Feather from 'react-native-vector-icons/Feather';
 import useUserStore from "../store";
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { firestore } from '../firebaseConfig';
+import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const Profile = () => {
@@ -16,6 +18,7 @@ const Profile = () => {
     const [error, setError] = useState(null);
     const [refreshing, setRefreshing] = useState(false);
     const [postCount, setPostCount] = useState(0);
+    const [profileImageUrl, setProfileImageUrl] = useState(null);
     const { email, firstName } = useUserStore();
     const insets = useSafeAreaInsets();
 
@@ -41,13 +44,38 @@ const Profile = () => {
         }
     };
 
+    const fetchProfileImage = async () => {
+        const storage = getStorage();
+        const profileImageRef = ref(storage, `posts/${email}/profilpicture/`); // Profil resmi klasörü
+
+        try {
+            const listResult = await listAll(profileImageRef);
+
+            if (listResult.items.length > 0) {
+                // İlk resmi alıyoruz
+                const firstImageRef = listResult.items[0];
+                const url = await getDownloadURL(firstImageRef);
+                setProfileImageUrl(url);
+            } else {
+                console.error("No images found in the profilpicture folder.");
+                setProfileImageUrl(null); // Default resim gösterebiliriz
+            }
+        } catch (error) {
+            console.error("Error fetching profile image:", error);
+            setProfileImageUrl(null); // Eğer resim alınamazsa, default resim gösterilebilir
+        }
+    };
+
+
     useEffect(() => {
         fetchImages();
+        fetchProfileImage();
     }, []);
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
         fetchImages();
+        fetchProfileImage();
     }, []);
 
     if (error) {
@@ -59,6 +87,16 @@ const Profile = () => {
     }
 
     const renderImages = () => {
+        if (images.length === 0) {
+            return (
+                <View style={styles.noImagesContainer}>
+                    <Feather name={'camera-off'} size={50} color={'#a9a9a9'} />
+                    <View style={{ height: 30 }}></View>
+                    <Text style={styles.noImagesText}>No photos available</Text>
+                </View>
+            );
+        }
+
         const itemWidth = width / 3 - 10; // Width for 3 items in a row
         const itemHeight = width / 3;     // Height to maintain aspect ratio
 
@@ -78,7 +116,7 @@ const Profile = () => {
                 />
                 <View style={styles.profileImageContainer}>
                     <Image
-                        source={require('../image/7309675.jpg')}
+                        source={profileImageUrl ? { uri: profileImageUrl } : require('../image/profileicon.png')}
                         style={styles.profileImage}
                     />
                 </View>
@@ -197,6 +235,17 @@ const styles = StyleSheet.create({
         color: 'red',
         textAlign: 'center',
         marginTop: 20,
+    },
+    noImagesContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '50%',
+        marginTop: 20,
+    },
+    noImagesText: {
+        color: '#a9a9a9',
+        fontSize: 16,
     },
 });
 
