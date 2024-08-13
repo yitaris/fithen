@@ -47,7 +47,7 @@ const UserProfile = () => {
     const fetchImages = async () => {
         setLoading(true);
         try {
-            const q = query(collection(firestore, 'photos'), where('userEmail', '==', userEmail));
+            const q = query(collection(firestore, 'post'), where('userEmail', '==', userEmail));
             const querySnapshot = await getDocs(q);
 
             const imagesList = querySnapshot.docs.map(doc => doc.data().imageUrl);
