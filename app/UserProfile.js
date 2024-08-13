@@ -4,9 +4,9 @@ import { View, Text, StyleSheet, Image, useWindowDimensions, TouchableOpacity, S
 import Icon from 'react-native-vector-icons/FontAwesome6';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import useUserStore from "../store";
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { firestore } from '../firebaseConfig';
+import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const UserProfile = () => {
@@ -18,10 +18,30 @@ const UserProfile = () => {
     const [error, setError] = useState(null);
     const [refreshing, setRefreshing] = useState(false);
     const [postCount, setPostCount] = useState(0);
+    const [profilePicture, setProfilePicture] = useState(null);
     const insets = useSafeAreaInsets();
+
+    const fetchProfilePicture = async () => {
+        try {
+            const storage = getStorage();
+            const imageRef = ref(storage, `posts/${userEmail}/profilpicture/`);
+            const result = await listAll(imageRef);
+
+            if (result.items.length > 0) {
+                const firstFileRef = result.items[0];
+                const imageUrl = await getDownloadURL(firstFileRef);
+                setProfilePicture(imageUrl);
+            } else {
+                setProfilePicture(null); // If no image is found, set it to null or a default image
+            }
+        } catch (error) {
+            console.error("Error fetching profile picture: ", error);
+        }
+    };
 
     useEffect(() => {
         console.log("User's first name:", firstName);
+        fetchProfilePicture(); // Fetch the profile picture when the component mounts
     }, [firstName]);
 
     const fetchImages = async () => {
@@ -78,9 +98,6 @@ const UserProfile = () => {
         ));
     };
 
-
-
-
     return (
         <ScrollView style={styles.container}>
             <View style={{ backgroundColor: 'black', height: 200 }}>
@@ -90,7 +107,7 @@ const UserProfile = () => {
                 />
                 <View style={styles.profileImageContainer}>
                     <Image
-                        source={require('../image/7309675.jpg')}
+                        source={profilePicture ? { uri: profilePicture } : require('../image/profileicon.png')}
                         style={styles.profileImage}
                     />
                 </View>
@@ -147,7 +164,6 @@ const UserProfile = () => {
 
             <View style={styles.imageGrid}>
                 {renderImages()}
-
             </View>
         </ScrollView>
     );
@@ -211,10 +227,9 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginTop: 20,
     },
-    noImagesText:{
-        color:'white'
+    noImagesText: {
+        color: 'white'
     }
 });
 
 export default UserProfile;
-
