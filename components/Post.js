@@ -46,8 +46,10 @@ const Posts = () => {
                                 }
                             })
                         }}>
-                            <Text style={styles.userNameText}>{item.userName}</Text>
-                            <Text style={styles.userNameText}>{item.userEmail}</Text>
+                            <Text style={styles.userNameText}>
+                                {item.userName.charAt(0).toUpperCase() + item.userName.slice(1)}
+
+                            </Text>
                         </TouchableOpacity>
                     </BlurView>
                 }
@@ -82,7 +84,7 @@ const styles = StyleSheet.create({
     },
     blurView: {
         position: 'absolute',
-        bottom: 0,
+        top: 0,
         left: 0,
         right: 0,
         height: '20%',
