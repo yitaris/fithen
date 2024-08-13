@@ -11,7 +11,7 @@ const Posts = () => {
 
     useEffect(() => {
         const fetchImages = async () => {
-            const imagesCollection = collection(firestore, 'photos');
+            const imagesCollection = collection(firestore, 'post');
             const imagesSnapshot = await getDocs(imagesCollection);
             const imageItems = imagesSnapshot.docs.map(doc => ({
                 imageUrl: doc.data().imageUrl,
@@ -47,7 +47,7 @@ const Posts = () => {
                             })
                         }}>
                             <Text style={styles.userNameText}>
-                                {item.userName.charAt(0).toUpperCase() + item.userName.slice(1)}
+                            {item.userName.charAt(0).toUpperCase() + item.userName.slice(1)}
 
                             </Text>
                         </TouchableOpacity>

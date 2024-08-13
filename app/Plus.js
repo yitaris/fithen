@@ -50,7 +50,7 @@ const Plus = () => {
 
                 console.log('File available at', downloadURL);
 
-                await addDoc(collection(firestore, 'photos'), {
+                await addDoc(collection(firestore, 'post'), {
                     userEmail:email,
                     userName: displayName,
                     imageUrl: downloadURL,

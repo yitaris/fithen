@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, Image, useWindowDimensions, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Image, useWindowDimensions, TouchableOpacity, SafeAreaView, ScrollView, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome6';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Feather from 'react-native-vector-icons/Feather';
 import useUserStore from "../store";
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { firestore } from '../firebaseConfig';
-import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, listAll, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as ImagePicker from 'expo-image-picker';
+
 
 const Profile = () => {
     const { width } = useWindowDimensions();
@@ -21,6 +23,8 @@ const Profile = () => {
     const [profileImageUrl, setProfileImageUrl] = useState(null);
     const { email, firstName } = useUserStore();
     const insets = useSafeAreaInsets();
+    const [imageUri, setImageUri] = useState(null);
+
 
     useEffect(() => {
         console.log("User's first name:", firstName);
@@ -29,7 +33,7 @@ const Profile = () => {
     const fetchImages = async () => {
         setLoading(true);
         try {
-            const q = query(collection(firestore, 'photos'), where('userEmail', '==', email));
+            const q = query(collection(firestore, 'post'), where('userEmail', '==', email));
             const querySnapshot = await getDocs(q);
 
             const imagesList = querySnapshot.docs.map(doc => doc.data().imageUrl);
@@ -107,6 +111,59 @@ const Profile = () => {
         ));
     };
 
+
+
+    const pickImage = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Sorry, we need camera roll permissions to make this work!');
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            quality: 1,
+        });
+
+        if (!result.canceled) {
+            setImageUri(result.assets[0].uri);
+            await uploadImage(result.assets[0].uri); // await ekleyin
+        }
+    };
+
+    const uploadImage = async (uri) => {
+        const displayName = firstName || "Anonymous";
+
+        try {
+            const response = await fetch(uri);
+            const blob = await response.blob();
+
+            const filename = uri.substring(uri.lastIndexOf('/') + 1);
+            const storage = getStorage();  // Initialize the storage here
+            const storageRef = ref(storage, `posts/${email}/profilpicture/${filename}`);
+
+            await uploadBytes(storageRef, blob);
+            const downloadURL = await getDownloadURL(storageRef);
+
+            console.log('File available at', downloadURL);
+
+            await addDoc(collection(firestore, 'photos'), {
+                userEmail: email,
+                userName: displayName,
+                imageUrl: downloadURL,
+                createdAt: new Date(),
+            });
+
+            Alert.alert('Success', 'Image uploaded successfully!');
+
+        } catch (error) {
+            console.error('Upload failed:', error);
+            Alert.alert('Upload failed', error.message);
+        }
+    }
+
+
     return (
         <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: insets.bottom }}>
             <View style={{ backgroundColor: 'black', height: 200 }}>
@@ -114,12 +171,15 @@ const Profile = () => {
                     style={{ width: '100%', height: '100%' }}
                     source={require('../image/bg.jpg')}
                 />
-                <View style={styles.profileImageContainer}>
-                    <Image
-                        source={profileImageUrl ? { uri: profileImageUrl } : require('../image/profileicon.png')}
-                        style={styles.profileImage}
-                    />
-                </View>
+                <TouchableOpacity onPress={pickImage}>
+                    <View style={styles.profileImageContainer}>
+                        <Image
+                            source={profileImageUrl ? { uri: profileImageUrl } : require('../image/profileicon.png')}
+                            style={styles.profileImage}
+                        />
+                        <Icon style={{ position: 'absolute', zIndex: 99, bottom: -10, }} name={'pen'} size={25} color={selectedIcon === 'heart' ? 'white' : 'red'} />
+                    </View>
+                </TouchableOpacity>
             </View>
             <View style={{ marginTop: 60, alignSelf: 'center', width: '80%' }}>
                 <Text style={{ fontWeight: '500', fontSize: 20, textAlign: 'center', color: 'white' }}>
