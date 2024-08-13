@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, FlatList, StyleSheet, Image } from "react-native";
+import {View, Text, TextInput, FlatList, StyleSheet, Image, TouchableOpacity} from "react-native";
 import { firestore } from "../firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
 import { getStorage, ref, listAll, getDownloadURL } from "firebase/storage";
+import {router} from "expo-router";
 
 const UsersList = () => {
     const [users, setUsers] = useState([]);
@@ -17,6 +18,8 @@ const UsersList = () => {
                 const storage = getStorage(); // Firebase Storage referansı
                 const userList = await Promise.all(querySnapshot.docs.map(async (doc) => {
                     const email = doc.id; // Her belgenin ID'si email adresi
+                    const { firstName } = doc.data(); // Firestore'dan firstName alanını al
+
                     const imageRef = ref(storage, `posts/${email}/profilpicture/`); // Firebase Storage'daki resim yolu
 
                     try {
@@ -29,10 +32,10 @@ const UsersList = () => {
                             const firstFileRef = result.items[0];
                             imageUrl = await getDownloadURL(firstFileRef);
                         }
-                        return { email, imageUrl };
+                        return { email, firstName, imageUrl };
                     } catch (error) {
                         console.error("Error fetching image URL: ", error);
-                        return { email, imageUrl: null }; // Resim yoksa imageUrl null olur
+                        return { email, firstName, imageUrl: null }; // Resim yoksa imageUrl null olur
                     }
                 }));
                 setUsers(userList);
@@ -70,13 +73,20 @@ const UsersList = () => {
                     data={filteredUsers}
                     keyExtractor={(item, index) => index.toString()}
                     renderItem={({ item }) => (
-                        <View style={styles.emailContainer}>
-                            <Image
-                                source={item.imageUrl ? { uri: item.imageUrl } : require('../image/profileicon.png')} // Profil resmi ya da default resim
-                                style={styles.profileImage}
-                            />
-                            <Text style={styles.emailText}>{item.email}</Text>
-                        </View>
+                        <TouchableOpacity onPress={() => {
+                            router.push({
+                                pathname: '/UserProfile',
+                                params: { userEmail: item.email, firstName: item.firstName }
+                            });
+                        }}>
+                            <View style={styles.emailContainer}>
+                                <Image
+                                    source={item.imageUrl ? { uri: item.imageUrl } : require('../image/profileicon.png')} // Profil resmi ya da default resim
+                                    style={styles.profileImage}
+                                />
+                                <Text style={styles.emailText}>{item.email}</Text>
+                            </View>
+                        </TouchableOpacity>
                     )}
                 />
             )}
