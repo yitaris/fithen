@@ -7,7 +7,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import useUserStore from "../store";
 import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { firestore } from '../firebaseConfig';
-import { getStorage, ref, listAll, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, listAll, uploadBytes, getDownloadURL,deleteObject } from 'firebase/storage';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from 'expo-image-picker';
 
@@ -134,35 +134,35 @@ const Profile = () => {
 
     const uploadImage = async (uri) => {
         const displayName = firstName || "Anonymous";
-
+        const storage = getStorage();
+        const profilePicturesRef = ref(storage, `posts/${email}/profilpicture/`);
+    
         try {
+            // Delete all existing profile pictures before uploading the new one
+            const listResult = await listAll(profilePicturesRef);
+    
+            await Promise.all(listResult.items.map(itemRef => deleteObject(itemRef)));
+    
+            // Upload the new image
             const response = await fetch(uri);
             const blob = await response.blob();
-
+    
             const filename = uri.substring(uri.lastIndexOf('/') + 1);
-            const storage = getStorage();  // Initialize the storage here
-            const storageRef = ref(storage, `posts/${email}/profilpicture/${filename}`);
-
-            await uploadBytes(storageRef, blob);
-            const downloadURL = await getDownloadURL(storageRef);
-
+            const newProfileImageRef = ref(storage, `posts/${email}/profilpicture/${filename}`);
+    
+            await uploadBytes(newProfileImageRef, blob);
+            const downloadURL = await getDownloadURL(newProfileImageRef);
+    
             console.log('File available at', downloadURL);
-
-            await addDoc(collection(firestore, 'photos'), {
-                userEmail: email,
-                userName: displayName,
-                imageUrl: downloadURL,
-                createdAt: new Date(),
-            });
-
             Alert.alert('Success', 'Image uploaded successfully!');
-
+            setProfileImageUrl(downloadURL);
+    
         } catch (error) {
             console.error('Upload failed:', error);
             Alert.alert('Upload failed', error.message);
         }
-    }
-
+    };
+    
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: insets.bottom }}>
