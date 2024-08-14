@@ -76,11 +76,12 @@ const UserProfile = () => {
     const updateFollowRequest = async () => {
         try {
             const { firstName } = useUserStore.getState();
+            const { email} = useUserStore.getState();
             const userDocRef = doc(firestore, "users", userEmail);
 
             // Check if the user's first name already exists in the followRequest array
             await updateDoc(userDocRef, {
-                followRequest: arrayUnion(firstName)
+                notification: arrayUnion(firstName +" "+ email )
             });
 
             console.log("Follow request updated successfully!");
