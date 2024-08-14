@@ -1,163 +1,123 @@
-import React, { useState, useEffect, useRef } from "react";
-import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, Modal, ImageBackground, RefreshControl, Animated, Easing } from "react-native";
+import React, { useState, useEffect } from "react";
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Modal, RefreshControl, SafeAreaView } from "react-native";
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
-import { auth } from "../firebaseConfig"; // config.js'den import
-import useUserStore from '../store'; // Import the Zustand store
+import { auth, firestore } from "../firebaseConfig"; // Firebase config
+import { doc, getDoc } from "firebase/firestore"; // Firestore imports
+import useUserStore from '../store'; // Zustand store import
 import Posts from "../components/Post";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Link,router } from "expo-router";
-import BottomTabs from "../components/BottomTabs";
+import { router } from "expo-router";
 
 const Home = () => {
-    const [refreshing, setRefreshing] = React.useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
-    const [selectedImage, setSelectedImage] = useState(null);
-    const [photo, setPhoto] = useState(null); // Başlangıçta null, çünkü tek bir fotoğraf göstereceğiz
-    const [loading, setLoading] = useState(true);
-    const [sideBarVisible, setSideBarVisible] = useState(false);
+    const [notifications, setNotifications] = useState([]);
 
-    const navigation = useNavigation();
-    const { firstName } = useUserStore();
+    const { email } = useUserStore(); // Get user email from store
 
     const onRefresh = React.useCallback(() => {
         setRefreshing(true);
         setTimeout(() => {
-          setRefreshing(false);
+            setRefreshing(false);
         }, 2000);
-      }, []);
+    }, []);
 
     const clearOnboarding = async () => {
         try {
-          await AsyncStorage.removeItem('@userRegistered');
-          await AsyncStorage.setItem('@userLogout', 'true');
-          router.push('/Login')
+            await AsyncStorage.removeItem('@userRegistered');
+            await AsyncStorage.setItem('@userLogout', 'true');
+            router.push('/Login');
         } catch (err) {
-          console.log('Error @clearOnboarding', err);
+            console.log('Error @clearOnboarding', err);
         }
-      };
+    };
 
-    const user = auth.currentUser; // Giriş yapmış kullanıcıyı al
+    const user = auth.currentUser; // Get the current user
     console.log(user);
 
-    const openModal = (imageUrl) => {
-        setSelectedImage(imageUrl);
+    // Fetch notifications from Firestore
+    const fetchNotifications = async () => {
+        try {
+            const docRef = doc(firestore, `users/${email}`);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const userData = docSnap.data();
+                const notificationList = userData.notification || [];
+                setNotifications(notificationList);
+            } else {
+                console.log("No such document!");
+            }
+        } catch (error) {
+            console.error("Error fetching notifications:", error);
+        }
+    };
+
+    // Open modal and fetch notifications
+    const openModal = async () => {
         setModalVisible(true);
+        await fetchNotifications();
     };
 
     const closeModal = () => {
-        setSelectedImage(null);
         setModalVisible(false);
     };
-
-    const showSideBar = () => {
-        setSideBarVisible(true);
-        Animated.timing(sidebarPosition, {
-            toValue: 0,
-            duration: 300,
-            useNativeDriver: true,
-            easing: Easing.out(Easing.ease),
-        }).start();
-    };
-
-    const closeSideBar = () => {
-        Animated.timing(sidebarPosition, {
-            toValue: -80, // Match this value to sidebar's width
-            duration: 300,
-            useNativeDriver: true,
-            easing: Easing.out(Easing.ease),
-        }).start(() => setSideBarVisible(false));
-    };
-
-
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <ScrollView
-            refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-              }
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                }
             >
                 <View style={styles.headerContainer}>
                     <View style={{ flexDirection: 'row', justifyContent: 'flex-end', borderRadius: 100, paddingVertical: 2 }}>
-                        <FontAwesome name={'heartbeat'} size={30} color={'#bf2929'} style={styles.icons} />
+                        <TouchableOpacity onPress={()=>{router.push('/notification')}}>
+                            <FontAwesome name={'heartbeat'} size={30} color={'#bf2929'} style={styles.icons} />
+                        </TouchableOpacity>
                         <FontAwesome6 name={'message'} size={30} color={'#bf2929'} style={styles.icons} />
                     </View>
                 </View>
+
                 <View style={styles.storyCt}>
                     <ScrollView horizontal={true}>
-                        <View style={{ justifyContent: 'center', alignItems: 'center' }}>
-                            <View style={{ borderRadius: 32,  }}>
-                                <View style={[styles.myStory, { backgroundColor: 'rgba(142, 50, 51, .4)' }]}>
-                                    <TouchableOpacity onPress={() => {router.push('/Plus')}}>
-                                        <Text style={{ color: 'white', fontSize: 30 }}>+</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                            <Text style={{ color: 'white', marginTop: 4, fontSize: 15 }}>add story</Text>
-                        </View>
-                            <View style={styles.userStory}>
-                                <View style={{  borderRadius: 32, }}>
-                                    <View style={styles.myStory}>
-                                        <Image source={require('../image/diet.png')} style={styles.userStoryImage} />
-                                    </View>
-                                </View>
-                                <Text style={{ color: 'white', marginTop: 4, fontSize: 15 }}>Samera</Text>
-                            </View>
-                        <View style={styles.userStory}>
-                            <View style={{ borderRadius: 32, }}>
-                                <View style={styles.myStory}>
-                                    <Image source={require('../image/running.png')} style={styles.userStoryImage} />
-                                </View>
-                            </View>
-                            <Text style={{ color: 'white', marginTop: 4, fontSize: 15 }}>Dream</Text>
-                        </View>
-                        <View style={styles.userStory}>
-                            <View style={{ borderRadius: 32, }}>
-                                <View style={styles.myStory}>
-                                    <Image source={require('../image/football.png')} style={styles.userStoryImage} />
-                                </View>
-                            </View>
-                            <Text style={{ color: 'white', marginTop: 4, fontSize: 15 }}>Gansta</Text>
-                        </View>
-                        <View style={styles.userStory}>
-                            <View style={{ borderRadius: 32, }}>
-                                <View style={styles.myStory}>
-                                    <Image source={require('../image/trainer.png')} style={styles.userStoryImage} />
-                                </View>
-                            </View>
-                            <Text style={{ color: 'white', marginTop: 4, fontSize: 15 }}>Samera</Text>
-                        </View>
-                        <View style={styles.userStory}>
-                            <View style={{ borderRadius: 32, }}>
-                                <View style={styles.myStory}>
-                                    <Image source={require('../image/trainer.png')} style={styles.userStoryImage} />
-                                </View>
-                            </View>
-                            <Text style={{ color: 'white', marginTop: 4, fontSize: 15 }}>Dream</Text>
-                        </View>
-                        <View style={styles.userStory}>
-                            <View style={{  borderRadius: 32, }}>
-                                <View style={styles.myStory}>
-                                    <Image source={require('../image/diet.png')} style={styles.userStoryImage} />
-                                </View>
-                            </View>
-                            <Text style={{ color: 'white', marginTop: 4, fontSize: 15 }}>Gansta</Text>
-                        </View>
+                        {/* Add stories here */}
                     </ScrollView>
                 </View>
                 <View>
                     <Posts />
                 </View>
             </ScrollView>
+
+            {/* Modal to display notifications */}
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={closeModal}
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Notifications</Text>
+                        {notifications.length > 0 ? (
+                            notifications.map((notification, index) => (
+                                <Text key={index} style={styles.notificationText}>{notification}</Text>
+                            ))
+                        ) : (
+                            <Text style={styles.notificationText}>No notifications available</Text>
+                        )}
+                        <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
+                            <Text style={styles.closeButtonText}>Close</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
-}
+};
 
 const styles = StyleSheet.create({
-
     safeArea: {
         backgroundColor: '#000',
         flex: 1
@@ -171,8 +131,8 @@ const styles = StyleSheet.create({
         paddingTop: 10,
         alignItems: 'center'
     },
-    title: {
-        fontSize: 20,
+    icons: {
+        margin: 5,
     },
     storyCt: {
         marginTop: 10,
@@ -183,46 +143,39 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 10,
     },
-
-    myStory: {
+    modalContainer: {
+        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 3,
-        borderColor: '#bf2929',
-        width: 70,
-        height: 70,
-        borderRadius: 32,
+        backgroundColor: 'rgba(0,0,0,0.5)',
     },
-    userStoryImage: {
-        width: 60, height: 60, borderRadius: 32
+    modalContent: {
+        width: 300,
+        padding: 20,
+        backgroundColor: 'white',
+        borderRadius: 10,
+        alignItems: 'center',
     },
-    userStory: {
-        justifyContent: 'center', alignItems: 'center', marginLeft: 10
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 15,
     },
-    post: {
+    notificationText: {
+        fontSize: 16,
+        marginBottom: 10,
+    },
+    closeButton: {
         marginTop: 15,
-        borderWidth: 1,
-        borderColor: 'white',
-        width: 400, height: 500,
-        objectFit: 'cover',
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        backgroundColor: '#bf2929',
+        borderRadius: 5,
     },
-    userProfileImage: {
-        borderRadius: 100,
-        paddingHorizontal: 15,
-        width: 50, height: 50,
+    closeButtonText: {
+        color: 'white',
+        fontSize: 16,
     },
-    usernameCt: {
-        borderRadius: '100%',
-        alignSelf: 'center',
-        width: '100%',
-        flexDirection: 'row',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-    },
-    icons:{
-        margin:5,
-    }
-
 });
 
 export default Home;
