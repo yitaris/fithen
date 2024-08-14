@@ -4,10 +4,11 @@ import { View, Text, StyleSheet, Image, useWindowDimensions, TouchableOpacity, S
 import Icon from 'react-native-vector-icons/FontAwesome6';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { firestore } from '../firebaseConfig';
 import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import useUserStore from "../store";
 
 const UserProfile = () => {
     const { firstName, userEmail } = useLocalSearchParams();
@@ -70,6 +71,27 @@ const UserProfile = () => {
         setRefreshing(true);
         fetchImages();
     }, []);
+
+    // Update followRequest field
+    const updateFollowRequest = async () => {
+        try {
+            const { firstName } = useUserStore.getState();
+            const userDocRef = doc(firestore, "users", userEmail);
+
+            // Check if the user's first name already exists in the followRequest array
+            await updateDoc(userDocRef, {
+                followRequest: arrayUnion(firstName)
+            });
+
+            console.log("Follow request updated successfully!");
+        } catch (error) {
+            console.error("Error updating follow request: ", error);
+        }
+    };
+
+    const handleFollowPress = () => {
+        updateFollowRequest();
+    };
 
     if (error) {
         return (
@@ -134,7 +156,12 @@ const UserProfile = () => {
                     <Text style={{ textAlign: 'center', color: '#a9a9a9' }}>Posts</Text>
                 </View>
             </View>
-
+            <TouchableOpacity
+                style={{ borderWidth: 1, width: '90%', paddingVertical: 10, backgroundColor: 'blue', alignSelf: 'center' }}
+                onPress={handleFollowPress}
+            >
+                <Text style={{ color: 'white', textAlign: 'center' }}>Follow</Text>
+            </TouchableOpacity>
             <View style={styles.iconContainer}>
                 <TouchableOpacity
                     style={{ width: 70, alignItems: 'center' }}
@@ -168,7 +195,6 @@ const UserProfile = () => {
         </ScrollView>
     );
 }
-
 const styles = StyleSheet.create({
     container: {
         flex: 1,
