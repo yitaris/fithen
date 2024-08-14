@@ -7,9 +7,11 @@ import Feather from 'react-native-vector-icons/Feather';
 import useUserStore from "../store";
 import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { firestore } from '../firebaseConfig';
-import { getStorage, ref, listAll, uploadBytes, getDownloadURL,deleteObject } from 'firebase/storage';
+import { getStorage, ref, listAll, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 
 
 const Profile = () => {
@@ -24,6 +26,11 @@ const Profile = () => {
     const { email, firstName } = useUserStore();
     const insets = useSafeAreaInsets();
     const [imageUri, setImageUri] = useState(null);
+
+    const logOut =  async () => {
+        await AsyncStorage.setItem('@userLogout', 'false');
+        router.replace('/Login')
+    }
 
 
     useEffect(() => {
@@ -184,6 +191,7 @@ const Profile = () => {
             <View style={{ marginTop: 60, alignSelf: 'center', width: '80%' }}>
                 <Text style={{ fontWeight: '500', fontSize: 20, textAlign: 'center', color: 'white' }}>
                     {firstName}
+                   
                 </Text>
                 <Text style={{ textAlign: 'center', color: '#a9a9a9' }}>
                     I'm delighted to introduce myself as a professional model
@@ -203,6 +211,10 @@ const Profile = () => {
                     <Text style={{ textAlign: 'center', color: '#a9a9a9' }}>Posts</Text>
                 </View>
             </View>
+
+            <TouchableOpacity onPress={logOut}>
+                        <Text style={{color:'white'}}>Çıkış yap</Text>
+                    </TouchableOpacity>
 
             <View style={styles.iconContainer}>
                 <TouchableOpacity
