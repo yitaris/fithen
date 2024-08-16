@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { collection, addDoc, onSnapshot, query, orderBy, updateDoc, doc, deleteDoc, where, getDocs } from "firebase/firestore";
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, where } from "firebase/firestore";
 import { db } from '../firebaseConfig';
 import useUserStore from '../store';
 import { useLocalSearchParams } from 'expo-router';
@@ -17,29 +17,25 @@ const Chat = () => {
 
     useEffect(() => {
         const q = query(collection(db, chatId), orderBy('createdAt', 'asc'));
+
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const fetchedMessages = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-            }));
+            const currentTime = new Date();
+            const fetchedMessages = snapshot.docs
+                .map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                }))
+                .filter(message => {
+                    // 1 saatten eski mesajları filtrele
+                    const messageTime = message.createdAt.toDate();
+                    const timeDifference = (currentTime - messageTime) / (1000 * 60); // Dakika olarak fark
+                    return timeDifference <= 60; // 1 saatten eski olmayan mesajları al
+                });
+
             setMessages(fetchedMessages);
         });
 
         return () => unsubscribe();
-    }, [chatId]);
-
-    // Dokunulmamış mesajları silme işlemi
-    useEffect(() => {
-        const deleteUnsavedMessages = async () => {
-            const unsavedMessagesQuery = query(collection(db, chatId), where('saved', '==', false));
-            const querySnapshot = await getDocs(unsavedMessagesQuery);
-
-            querySnapshot.forEach(async (doc) => {
-                await deleteDoc(doc.ref);
-            });
-        };
-
-        deleteUnsavedMessages(); // Dokunulmamış mesajları uygulama başladığında sil
     }, [chatId]);
 
     const handleSend = async () => {
@@ -48,25 +44,15 @@ const Chat = () => {
                 text: text,
                 createdAt: new Date(),
                 sender: firstName,
-                saved: false, // Mesaj başlangıçta kaydedilmemiş olarak başlar
             });
             setText('');
         }
     };
 
-    const handleSaveMessage = async (messageId) => {
-        const messageRef = doc(db, chatId, messageId);
-        await updateDoc(messageRef, { saved: true }); // Mesaja dokunulduğunda 'saved' alanını true yapar
-    };
-
     const renderItem = ({ item }) => (
-        <TouchableOpacity
-            onPress={() => handleSaveMessage(item.id)} // Mesaja dokunulduğunda kaydet
-            onLongPress={() => Alert.alert("Message Long Pressed!")} // Uzun basma işlemi örneği
-            style={[styles.messageContainer, item.sender === firstName ? styles.sentMessage : styles.receivedMessage]}
-        >
+        <View style={[styles.messageContainer, item.sender === firstName ? styles.sentMessage : styles.receivedMessage]}>
             <Text style={styles.messageText}>{item.text}</Text>
-        </TouchableOpacity>
+        </View>
     );
 
     return (
@@ -103,7 +89,7 @@ const styles = StyleSheet.create({
     },
     messagesList: {
         padding: 10,
-        paddingBottom: 100, // Alt kısımda boşluk bırakmak için
+        paddingBottom: 100,
     },
     messageContainer: {
         padding: 10,
@@ -117,7 +103,7 @@ const styles = StyleSheet.create({
         alignSelf: 'flex-end',
     },
     receivedMessage: {
-        backgroundColor: 'red',
+        backgroundColor: '#f1f1f1',
     },
     messageText: {
         color: '#fff',
