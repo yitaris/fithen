@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
-import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, setDoc, getDoc, getDocs } from "firebase/firestore";
-import { getStorage, ref, uploadBytes, deleteObject, listAll, getDownloadURL } from "firebase/storage";
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { collection, addDoc, onSnapshot, query, orderBy, updateDoc, doc, deleteDoc, where, getDocs, getDoc } from "firebase/firestore";
 import { db } from '../firebaseConfig';
 import useUserStore from '../store';
 import { useLocalSearchParams } from 'expo-router';
@@ -11,89 +10,86 @@ const Chat = () => {
     const [text, setText] = useState('');
     const { firstName } = useUserStore();
     const { name } = useLocalSearchParams();
-    const storage = getStorage();
 
+    // Kullanıcı isimlerini alfabetik olarak sıralıyoruz
     const sortedNames = [firstName.toLowerCase(), name.toLowerCase()].sort();
     const chatId = `${sortedNames[0]}_${sortedNames[1]}_messages`;
-    const storageRef = ref(storage, chatId);
 
     useEffect(() => {
         const q = query(collection(db, chatId), orderBy('createdAt', 'asc'));
-
-        const unsubscribe = onSnapshot(q, async (snapshot) => {
-            const fetchedMessages = [];
-            for (let doc of snapshot.docs) {
-                const message = doc.data();
-                const storageMessageRef = ref(storageRef, `${doc.id}.txt`);
-                const url = await getDownloadURL(storageMessageRef);
-                fetchedMessages.push({
-                    id: doc.id,
-                    text: await fetch(url).then(res => res.text()), // Fetch text from storage
-                    ...message,
-                });
-            }
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const fetchedMessages = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+            }));
             setMessages(fetchedMessages);
+
+            // Eğer son mesajı gönderen kullanıcı kendisi değilse ve mesaja dokunmamışsa süre başlat
+            if (fetchedMessages.length > 0) {
+                const lastMessage = fetchedMessages[fetchedMessages.length - 1];
+                if (lastMessage.sender !== firstName && !lastMessage.saved) {
+                    startDeletionTimer(lastMessage.id);
+                }
+            }
         });
 
         return () => unsubscribe();
     }, [chatId]);
 
+    // Dokunulmamış mesajları silme işlemi
     useEffect(() => {
-        const onlineRef = doc(db, 'onlineUsers', firstName);
-        const setOnlineStatus = async () => {
-            await setDoc(onlineRef, { online: true, lastSeen: new Date() }, { merge: true });
+        const deleteUnsavedMessages = async () => {
+            const unsavedMessagesQuery = query(collection(db, chatId), where('saved', '==', false));
+            const querySnapshot = await getDocs(unsavedMessagesQuery);
+
+            querySnapshot.forEach(async (doc) => {
+                await deleteDoc(doc.ref);
+            });
         };
 
-        const unsubscribe = onSnapshot(doc(db, 'onlineUsers', name), async (docSnapshot) => {
-            if (docSnapshot.exists() && !docSnapshot.data().online) {
-                await handleUserLeft();
-            }
-        });
-
-        setOnlineStatus();
-
-        return () => {
-            setDoc(onlineRef, { online: false }, { merge: true });
-            unsubscribe();
-        };
-    }, [name]);
-
-    const handleUserLeft = async () => {
-        const otherUserDoc = await getDoc(doc(db, 'onlineUsers', name));
-        if (!otherUserDoc.exists() || !otherUserDoc.data().online) {
-            // If both users are offline, delete all messages from Firestore
-            const messageQuerySnapshot = await getDocs(collection(db, chatId));
-            for (let docSnapshot of messageQuerySnapshot.docs) {
-                const storageMessageRef = ref(storageRef, `${docSnapshot.id}.txt`);
-                await deleteObject(storageMessageRef);
-                await deleteDoc(docSnapshot.ref);
-            }
-        } else {
-            // If only one user left, delete messages only from Storage
-            const messageQuerySnapshot = await getDocs(collection(db, chatId));
-            for (let docSnapshot of messageQuerySnapshot.docs) {
-                const storageMessageRef = ref(storageRef, `${docSnapshot.id}.txt`);
-                await deleteObject(storageMessageRef);
-            }
-        }
-    };
+        deleteUnsavedMessages(); // Dokunulmamış mesajları uygulama başladığında sil
+    }, [chatId]);
 
     const handleSend = async () => {
         if (text.trim().length > 0) {
-            const messageRef = await addDoc(collection(db, chatId), {
+            await addDoc(collection(db, chatId), {
+                text: text,
                 createdAt: new Date(),
                 sender: firstName,
+                saved: false, // Mesaj başlangıçta kaydedilmemiş olarak başlar
             });
-            const storageMessageRef = ref(storageRef, `${messageRef.id}.txt`);
-            await uploadBytes(storageMessageRef, text);
             setText('');
         }
     };
 
+    const handleSaveMessage = async (messageId) => {
+        const messageRef = doc(db, chatId, messageId);
+        await updateDoc(messageRef, { saved: true }); // Mesaja dokunulduğunda 'saved' alanını true yapar
+    };
+
+    // Mesaj silme zamanlayıcısı
+    const startDeletionTimer = (messageId) => {
+        setTimeout(async () => {
+            const messageRef = doc(db, chatId, messageId);
+            const messageSnapshot = await getDoc(messageRef);
+
+            if (messageSnapshot.exists()) {
+                const messageData = messageSnapshot.data();
+                if (!messageData.saved) {
+                    await deleteDoc(messageRef); // Mesajı sil
+                }
+            }
+        }, 3600000); // 1 saat sonra sil (3600000 ms = 1 saat)
+    };
+
     const renderItem = ({ item }) => (
-        <View style={[styles.messageContainer, item.sender === firstName ? styles.sentMessage : styles.receivedMessage]}>
+        <TouchableOpacity
+            onPress={() => handleSaveMessage(item.id)} // Mesaja dokunulduğunda kaydet
+            onLongPress={() => Alert.alert("Message Long Pressed!")} // Uzun basma işlemi örneği
+            style={[styles.messageContainer, item.sender === firstName ? styles.sentMessage : styles.receivedMessage]}
+        >
             <Text style={styles.messageText}>{item.text}</Text>
-        </View>
+        </TouchableOpacity>
     );
 
     return (
@@ -130,7 +126,7 @@ const styles = StyleSheet.create({
     },
     messagesList: {
         padding: 10,
-        paddingBottom: 100,
+        paddingBottom: 100, // Alt kısımda boşluk bırakmak için
     },
     messageContainer: {
         padding: 10,
@@ -156,6 +152,7 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderColor: '#ccc',
         backgroundColor: '#333',
+        marginBottom:100
     },
     input: {
         flex: 1,
