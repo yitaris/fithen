@@ -36,8 +36,8 @@ const Chat = () => {
         };
 
         const unsubscribe = onSnapshot(doc(db, 'onlineUsers', name), async (docSnapshot) => {
-            if (docSnapshot.exists() && docSnapshot.data().online) {
-                await handleAutoDelete();
+            if (docSnapshot.exists()) {
+                await handleAutoDelete(docSnapshot.data().online);
             }
         });
 
@@ -49,19 +49,23 @@ const Chat = () => {
         };
     }, [name]);
 
-    const handleAutoDelete = async () => {
+    const handleAutoDelete = async (otherUserOnline) => {
         const messageQuerySnapshot = await getDocs(collection(db, chatId));
         const currentTime = new Date();
 
-        messageQuerySnapshot.forEach(async (docSnapshot) => {
+        for (const docSnapshot of messageQuerySnapshot.docs) {
             const message = docSnapshot.data();
             const messageTime = message.createdAt.toDate();
             const timeDifference = (currentTime - messageTime) / (1000 * 60); // Dakika olarak fark
 
-            if (timeDifference >= 2) { // Mesajı silmeden önce 2 dakika bekle
+            if (timeDifference >= 1440) { // 1 gün (1440 dakika) sonra sil
                 await deleteDoc(docSnapshot.ref);
+            } else if (otherUserOnline) {
+                if (timeDifference >= 1) { // Her iki kullanıcı da online ise 1 dakika sonra sil
+                    await deleteDoc(docSnapshot.ref);
+                }
             }
-        });
+        }
     };
 
     const handleSend = async () => {
