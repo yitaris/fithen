@@ -4,20 +4,30 @@ import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'; // For diagonal arrow
 import Ionicons from '@expo/vector-icons/Ionicons'; // For notification bell
-import { auth, firestore } from "../firebaseConfig";
+import {auth, firestore, storage} from "../firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
 import useUserStore from '../store';
 import Posts from "../components/Post";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
+import {getDownloadURL, listAll, ref} from "firebase/storage";
 
 const Home = () => {
+
     const [refreshing, setRefreshing] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [lastScrollY, setLastScrollY] = useState(0);
     const [headerVisible, setHeaderVisible] = useState(true);
 
+    useEffect(() => {
+        const RegisterComponent = async() => {
+            await AsyncStorage.setItem('@userRegistered','true')
+        }
+
+
+        RegisterComponent();
+    }, []);
     const { email } = useUserStore();
     const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -27,16 +37,6 @@ const Home = () => {
             setRefreshing(false);
         }, 2000);
     }, []);
-
-    const clearOnboarding = async () => {
-        try {
-            await AsyncStorage.removeItem('@userRegistered');
-            await AsyncStorage.setItem('@userLogout', 'true');
-            router.push('/Login');
-        } catch (err) {
-            console.log('Error @clearOnboarding', err);
-        }
-    };
 
     const user = auth.currentUser;
     console.log(user);
@@ -59,14 +59,6 @@ const Home = () => {
         }
     };
 
-    const openModal = async () => {
-        setModalVisible(true);
-        await fetchNotifications();
-    };
-
-    const closeModal = () => {
-        setModalVisible(false);
-    };
 
     // Handle scroll direction to show/hide the header
     const handleScroll = (event) => {

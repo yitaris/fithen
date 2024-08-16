@@ -30,6 +30,7 @@ const Profile = () => {
 
     const logOut = async () => {
         await AsyncStorage.setItem('@userLogout', 'false');
+        await AsyncStorage.removeItem('@userRegistered')
         router.replace('/Login');
     }
 
@@ -188,18 +189,18 @@ const Profile = () => {
                             </TouchableOpacity>
                         </View>
                         <View style={styles.userStats}>
-                            <View style={styles.statsItem}>
+                            <TouchableOpacity style={styles.statsItem}>
                                 <Text style={styles.statsValue}>{followingCount}</Text>
                                 <Text style={styles.statsLabel}>Following</Text>
-                            </View>
-                            <View style={styles.statsItem}>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.statsItem}>
                                 <Text style={styles.statsValue}>{followersCount}</Text>
                                 <Text style={styles.statsLabel}>Followers</Text>
-                            </View>
-                            <View style={styles.statsItem}>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.statsItem}>
                                 <Text style={styles.statsValue}>{postCount}</Text>
                                 <Text style={styles.statsLabel}>Posts</Text>
-                            </View>
+                            </TouchableOpacity>
                         </View>
                     </View>
 

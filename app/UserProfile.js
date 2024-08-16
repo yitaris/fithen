@@ -205,18 +205,18 @@ const UserProfile = () => {
                         />
                     </View>
                     <View style={styles.userStats}>
-                        <View style={styles.statsItem}>
+                        <TouchableOpacity style={styles.statsItem}>
                             <Text style={styles.statsValue}>{followingCount}</Text>
                             <Text style={styles.statsLabel}>Following</Text>
-                        </View>
-                        <View style={styles.statsItem}>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.statsItem}>
                             <Text style={styles.statsValue}>{followersCount}</Text>
                             <Text style={styles.statsLabel}>Followers</Text>
-                        </View>
-                        <View style={styles.statsItem}>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.statsItem}>
                             <Text style={styles.statsValue}>{postCount}</Text>
                             <Text style={styles.statsLabel}>Posts</Text>
-                        </View>
+                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -225,18 +225,23 @@ const UserProfile = () => {
                 <View style={styles.profileInfo}>
                     <Text style={styles.profileName}>{firstName}</Text>
                     <Text style={styles.profileBio}>Kullanıcının kendisini açıkladığı kısım bu kısım</Text>
-                    <TouchableOpacity
-                        style={[
-                            styles.followButton,
-                            { backgroundColor: isFollowing ? '#270f0f' : isRequestSent ? 'orange' : '#950101' }
-                        ]}
-                        onPress={handleFollowPress}
-                        disabled={isFollowing || isRequestSent} // Eğer kullanıcı takip ediyorsa veya istekte bulunduysa buton disable olsun
-                    >
-                        <Text style={styles.followButtonText}>
-                            {isFollowing ? 'Already Following' : isRequestSent ? 'Request Sent' : 'Follow'}
-                        </Text>
-                    </TouchableOpacity>
+                    <View style={{flexDirection:'row',width:'90%',justifyContent:'space-between'}}>
+                        <TouchableOpacity
+                            style={[
+                                styles.followButton,
+                                { backgroundColor: isFollowing ? '#270f0f' : isRequestSent ? 'orange' : '#950101' }
+                            ]}
+                            onPress={handleFollowPress}
+                            disabled={isFollowing || isRequestSent} // Eğer kullanıcı takip ediyorsa veya istekte bulunduysa buton disable olsun
+                        >
+                            <Text style={styles.followButtonText}>
+                                {isFollowing ? 'Already Following' : isRequestSent ? 'Request Sent' : 'Follow'}
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={()=>{router.push('/Chat')}} style={[styles.followButton,{backgroundColor:'#5AB2FF'}]}>
+                            <Text style={styles.followButtonText}>Messages</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
                 <View style={styles.iconContainer}>
                     <TouchableOpacity style={styles.iconButton} onPress={() => setSelectedIcon('heart')}>
@@ -299,8 +304,7 @@ const styles = StyleSheet.create({
     followButton: {
         alignSelf: 'baseline',
         borderRadius: 9,
-        width: '60%',
-        paddingVertical: 8,
+        padding:14
     },
     followButtonText: {
         textAlign: 'center',

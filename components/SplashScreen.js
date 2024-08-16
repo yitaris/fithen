@@ -101,7 +101,7 @@ const SplashScreen = ({onAnimationFinish }) => {
 
       setTimeout(() => {
         onAnimationFinish();
-      }, 0);
+      }, 7000);
   }, []);
 
   const animatedShortBoxStyle = useAnimatedStyle(() => {
