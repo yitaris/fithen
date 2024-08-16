@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, setDoc, getDoc, getDocs } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, deleteObject, listAll, getDownloadURL } from "firebase/storage";
 import { db } from '../firebaseConfig';
 import useUserStore from '../store';
 import { useLocalSearchParams } from 'expo-router';
@@ -10,19 +11,27 @@ const Chat = () => {
     const [text, setText] = useState('');
     const { firstName } = useUserStore();
     const { name } = useLocalSearchParams();
+    const storage = getStorage();
 
     const sortedNames = [firstName.toLowerCase(), name.toLowerCase()].sort();
     const chatId = `${sortedNames[0]}_${sortedNames[1]}_messages`;
+    const storageRef = ref(storage, chatId);
 
     useEffect(() => {
         const q = query(collection(db, chatId), orderBy('createdAt', 'asc'));
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const fetchedMessages = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-            }));
-
+        const unsubscribe = onSnapshot(q, async (snapshot) => {
+            const fetchedMessages = [];
+            for (let doc of snapshot.docs) {
+                const message = doc.data();
+                const storageMessageRef = ref(storageRef, `${doc.id}.txt`);
+                const url = await getDownloadURL(storageMessageRef);
+                fetchedMessages.push({
+                    id: doc.id,
+                    text: await fetch(url).then(res => res.text()), // Fetch text from storage
+                    ...message,
+                });
+            }
             setMessages(fetchedMessages);
         });
 
@@ -36,8 +45,8 @@ const Chat = () => {
         };
 
         const unsubscribe = onSnapshot(doc(db, 'onlineUsers', name), async (docSnapshot) => {
-            if (docSnapshot.exists()) {
-                await handleAutoDelete(docSnapshot.data().online);
+            if (docSnapshot.exists() && !docSnapshot.data().online) {
+                await handleUserLeft();
             }
         });
 
@@ -49,32 +58,34 @@ const Chat = () => {
         };
     }, [name]);
 
-    const handleAutoDelete = async (otherUserOnline) => {
-        const messageQuerySnapshot = await getDocs(collection(db, chatId));
-        const currentTime = new Date();
-
-        for (const docSnapshot of messageQuerySnapshot.docs) {
-            const message = docSnapshot.data();
-            const messageTime = message.createdAt.toDate();
-            const timeDifference = (currentTime - messageTime) / (1000 * 60); // Dakika olarak fark
-
-            if (timeDifference >= 1440) { // 1 gün (1440 dakika) sonra sil
+    const handleUserLeft = async () => {
+        const otherUserDoc = await getDoc(doc(db, 'onlineUsers', name));
+        if (!otherUserDoc.exists() || !otherUserDoc.data().online) {
+            // If both users are offline, delete all messages from Firestore
+            const messageQuerySnapshot = await getDocs(collection(db, chatId));
+            for (let docSnapshot of messageQuerySnapshot.docs) {
+                const storageMessageRef = ref(storageRef, `${docSnapshot.id}.txt`);
+                await deleteObject(storageMessageRef);
                 await deleteDoc(docSnapshot.ref);
-            } else if (otherUserOnline) {
-                if (timeDifference >= 1) { // Her iki kullanıcı da online ise 1 dakika sonra sil
-                    await deleteDoc(docSnapshot.ref);
-                }
+            }
+        } else {
+            // If only one user left, delete messages only from Storage
+            const messageQuerySnapshot = await getDocs(collection(db, chatId));
+            for (let docSnapshot of messageQuerySnapshot.docs) {
+                const storageMessageRef = ref(storageRef, `${docSnapshot.id}.txt`);
+                await deleteObject(storageMessageRef);
             }
         }
     };
 
     const handleSend = async () => {
         if (text.trim().length > 0) {
-            await addDoc(collection(db, chatId), {
-                text: text,
+            const messageRef = await addDoc(collection(db, chatId), {
                 createdAt: new Date(),
                 sender: firstName,
             });
+            const storageMessageRef = ref(storageRef, `${messageRef.id}.txt`);
+            await uploadBytes(storageMessageRef, text);
             setText('');
         }
     };
