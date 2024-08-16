@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
-import { collection, addDoc, onSnapshot, query, orderBy } from "firebase/firestore";
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { collection, addDoc, onSnapshot, query, orderBy, updateDoc, doc, deleteDoc, where, getDocs } from "firebase/firestore";
 import { db } from '../firebaseConfig';
 import useUserStore from '../store';
 import { useLocalSearchParams } from 'expo-router';
@@ -8,12 +8,12 @@ import { useLocalSearchParams } from 'expo-router';
 const Chat = () => {
     const [messages, setMessages] = useState([]);
     const [text, setText] = useState('');
-    const { firstName } = useUserStore(); // Kullanıcı 1'in adı
-    const { name } = useLocalSearchParams(); // Kullanıcı 2'nin adı
+    const { firstName } = useUserStore();
+    const { name } = useLocalSearchParams();
 
     // Kullanıcı isimlerini alfabetik olarak sıralıyoruz
     const sortedNames = [firstName.toLowerCase(), name.toLowerCase()].sort();
-    const chatId = `${sortedNames[0]}_${sortedNames[1]}_messages`; // Alfabetik olarak sıralanmış koleksiyon adı
+    const chatId = `${sortedNames[0]}_${sortedNames[1]}_messages`;
 
     useEffect(() => {
         const q = query(collection(db, chatId), orderBy('createdAt', 'asc'));
@@ -28,21 +28,45 @@ const Chat = () => {
         return () => unsubscribe();
     }, [chatId]);
 
+    // Dokunulmamış mesajları silme işlemi
+    useEffect(() => {
+        const deleteUnsavedMessages = async () => {
+            const unsavedMessagesQuery = query(collection(db, chatId), where('saved', '==', false));
+            const querySnapshot = await getDocs(unsavedMessagesQuery);
+
+            querySnapshot.forEach(async (doc) => {
+                await deleteDoc(doc.ref);
+            });
+        };
+
+        deleteUnsavedMessages(); // Dokunulmamış mesajları uygulama başladığında sil
+    }, [chatId]);
+
     const handleSend = async () => {
         if (text.trim().length > 0) {
             await addDoc(collection(db, chatId), {
                 text: text,
                 createdAt: new Date(),
                 sender: firstName,
+                saved: false, // Mesaj başlangıçta kaydedilmemiş olarak başlar
             });
-            setText(''); // Mesaj gönderildikten sonra input sıfırlanıyor
+            setText('');
         }
     };
 
+    const handleSaveMessage = async (messageId) => {
+        const messageRef = doc(db, chatId, messageId);
+        await updateDoc(messageRef, { saved: true }); // Mesaja dokunulduğunda 'saved' alanını true yapar
+    };
+
     const renderItem = ({ item }) => (
-        <View style={[styles.messageContainer, item.sender === firstName ? styles.sentMessage : styles.receivedMessage]}>
+        <TouchableOpacity
+            onPress={() => handleSaveMessage(item.id)} // Mesaja dokunulduğunda kaydet
+            onLongPress={() => Alert.alert("Message Long Pressed!")} // Uzun basma işlemi örneği
+            style={[styles.messageContainer, item.sender === firstName ? styles.sentMessage : styles.receivedMessage]}
+        >
             <Text style={styles.messageText}>{item.text}</Text>
-        </View>
+        </TouchableOpacity>
     );
 
     return (
@@ -93,7 +117,7 @@ const styles = StyleSheet.create({
         alignSelf: 'flex-end',
     },
     receivedMessage: {
-        backgroundColor: '#f1f1f1',
+        backgroundColor: 'red',
     },
     messageText: {
         color: '#fff',
