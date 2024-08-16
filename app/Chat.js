@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { collection, addDoc, onSnapshot, query, orderBy, updateDoc, doc, deleteDoc, where, getDocs, getDoc } from "firebase/firestore";
 import { db } from '../firebaseConfig';
 import useUserStore from '../store';
 import { useLocalSearchParams } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 
 const Chat = () => {
     const [messages, setMessages] = useState([]);
@@ -82,13 +83,37 @@ const Chat = () => {
         }, 3600000); // 1 saat sonra sil (3600000 ms = 1 saat)
     };
 
+    // Resim seçme ve gönderme işlemi
+    const pickImage = async () => {
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 1,
+        });
+
+        if (!result.canceled) {
+            const selectedImage = result.assets[0].uri;
+            await addDoc(collection(db, chatId), {
+                imageUrl: selectedImage,
+                createdAt: new Date(),
+                sender: firstName,
+                saved: false, // Mesaj başlangıçta kaydedilmemiş olarak başlar
+            });
+        }
+    };
+
     const renderItem = ({ item }) => (
         <TouchableOpacity
             onPress={() => handleSaveMessage(item.id)} // Mesaja dokunulduğunda kaydet
             onLongPress={() => Alert.alert("Message Long Pressed!")} // Uzun basma işlemi örneği
             style={[styles.messageContainer, item.sender === firstName ? styles.sentMessage : styles.receivedMessage]}
         >
-            <Text style={styles.messageText}>{item.text}</Text>
+            {item.text ? (
+                <Text style={styles.messageText}>{item.text}</Text>
+            ) : (
+                <Image source={{ uri: item.imageUrl }} style={styles.image} />
+            )}
         </TouchableOpacity>
     );
 
@@ -114,6 +139,9 @@ const Chat = () => {
                 <TouchableOpacity onPress={handleSend} style={styles.sendButton}>
                     <Text style={styles.sendButtonText}>Send</Text>
                 </TouchableOpacity>
+                <TouchableOpacity onPress={pickImage} style={styles.imageButton}>
+                    <Text style={styles.sendButtonText}>Image</Text>
+                </TouchableOpacity>
             </View>
         </KeyboardAvoidingView>
     );
@@ -130,7 +158,7 @@ const styles = StyleSheet.create({
     },
     messageContainer: {
         padding: 10,
-        borderRadius: 15,
+        borderRadius: 12,
         marginVertical: 5,
         maxWidth: '80%',
         alignSelf: 'flex-start',
@@ -145,6 +173,11 @@ const styles = StyleSheet.create({
     messageText: {
         color: '#fff',
     },
+    image: {
+        width: 200,
+        height: 200,
+        borderRadius: 12,
+    },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -152,7 +185,6 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderColor: '#ccc',
         backgroundColor: '#333',
-        marginBottom:100
     },
     input: {
         flex: 1,
@@ -166,6 +198,12 @@ const styles = StyleSheet.create({
         padding: 10,
         backgroundColor: '#0078fe',
         borderRadius: 10,
+    },
+    imageButton: {
+        padding: 10,
+        backgroundColor: '#444',
+        borderRadius: 10,
+        marginLeft: 10,
     },
     sendButtonText: {
         color: '#fff',
