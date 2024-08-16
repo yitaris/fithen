@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Modal, RefreshControl, SafeAreaView } from "react-native";
+import React, { useState, useRef, useEffect } from "react";
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Modal, RefreshControl, SafeAreaView, Animated } from "react-native";
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { auth, firestore } from "../firebaseConfig"; // Firebase config
-import { doc, getDoc } from "firebase/firestore"; // Firestore imports
-import useUserStore from '../store'; // Zustand store import
+import MaterialIcons from '@expo/vector-icons/MaterialIcons'; // For diagonal arrow
+import Ionicons from '@expo/vector-icons/Ionicons'; // For notification bell
+import { auth, firestore } from "../firebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
+import useUserStore from '../store';
 import Posts from "../components/Post";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
@@ -13,8 +15,11 @@ const Home = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [notifications, setNotifications] = useState([]);
+    const [lastScrollY, setLastScrollY] = useState(0);
+    const [headerVisible, setHeaderVisible] = useState(true);
 
-    const { email } = useUserStore(); // Get user email from store
+    const { email } = useUserStore();
+    const scrollY = useRef(new Animated.Value(0)).current;
 
     const onRefresh = React.useCallback(() => {
         setRefreshing(true);
@@ -33,10 +38,10 @@ const Home = () => {
         }
     };
 
-    const user = auth.currentUser; // Get the current user
+    const user = auth.currentUser;
     console.log(user);
 
-    // Fetch notifications from Firestore
+    // Optimized Firebase data retrieval
     const fetchNotifications = async () => {
         try {
             const docRef = doc(firestore, `users/${email}`);
@@ -54,7 +59,6 @@ const Home = () => {
         }
     };
 
-    // Open modal and fetch notifications
     const openModal = async () => {
         setModalVisible(true);
         await fetchNotifications();
@@ -64,106 +68,131 @@ const Home = () => {
         setModalVisible(false);
     };
 
+    // Handle scroll direction to show/hide the header
+    const handleScroll = (event) => {
+        const currentScrollY = event.nativeEvent.contentOffset.y;
+
+        // Prevent hiding the header when at the very top of the scroll view
+        if (currentScrollY > 0) {
+            if (currentScrollY > lastScrollY && headerVisible) {
+                setHeaderVisible(false); // Scrolling down - hide header
+            } else if (currentScrollY < lastScrollY && !headerVisible) {
+                setHeaderVisible(true); // Scrolling up - show header
+            }
+        } else {
+            // Always show the header when at the top
+            setHeaderVisible(true);
+        }
+
+        setLastScrollY(currentScrollY);
+    };
+
     return (
         <SafeAreaView style={styles.safeArea}>
-            <ScrollView
+            {/* Animated Header */}
+            {headerVisible && (
+                <View style={styles.headerContainer}>
+                    <TouchableOpacity onPress={()=>{router.push('/Plus')}}>
+                        <FontAwesome name={'plus'} size={30} color={'#bf2929'} style={styles.icons} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={()=>{router.push('/notification')}}>
+                        <Ionicons name={'notifications'} size={30} color={'#bf2929'} style={styles.icons} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={()=>{router.push('/Arrow')}}>
+                        <MaterialIcons name={'arrow-forward-ios'} size={30} color={'#bf2929'} style={styles.icons} />
+                    </TouchableOpacity>
+                </View>
+            )}
+
+            {/* ScrollView Content */}
+            <Animated.ScrollView
+                onScroll={handleScroll}
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
                 }
+                scrollEventThrottle={16}
             >
-                <View style={styles.headerContainer}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'flex-end', borderRadius: 100, paddingVertical: 2 }}>
-                        <TouchableOpacity onPress={()=>{router.push('/notification')}}>
-                            <FontAwesome name={'heartbeat'} size={30} color={'#bf2929'} style={styles.icons} />
-                        </TouchableOpacity>
-                        <FontAwesome6 name={'message'} size={30} color={'#bf2929'} style={styles.icons} />
-                    </View>
-                </View>
-
-                <View style={styles.storyCt}>
-                    <ScrollView horizontal={true}>
-                        {/* Add stories here */}
-                    </ScrollView>
-                </View>
                 <View>
                     <Posts />
                 </View>
-            </ScrollView>
-
-            {/* Modal to display notifications */}
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={modalVisible}
-                onRequestClose={closeModal}
-            >
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Notifications</Text>
-                        {notifications.length > 0 ? (
-                            notifications.map((notification, index) => (
-                                <Text key={index} style={styles.notificationText}>{notification}</Text>
-                            ))
-                        ) : (
-                            <Text style={styles.notificationText}>No notifications available</Text>
-                        )}
-                        <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
-                            <Text style={styles.closeButtonText}>Close</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
+            </Animated.ScrollView>
         </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
     safeArea: {
-        backgroundColor: '#000',
-        flex: 1
+        backgroundColor: '#1a1a1a',
+        flex: 1,
     },
     headerContainer: {
-        marginTop: 10,
-        width: '100%',
+        position: 'absolute',
+        height:'10%',
+        top: 0,
+        left: 0,
+        right: 0,
         flexDirection: 'row',
-        justifyContent: 'flex-end',
+        justifyContent: 'space-between',
+        alignItems:'flex-end',
         paddingHorizontal: 15,
         paddingTop: 10,
-        alignItems: 'center'
+        backgroundColor: 'rgba(43,43,43,0.7)',
+        borderRadius: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.8,
+        shadowRadius: 2,
+        elevation: 5,
+        zIndex: 1000,
     },
     icons: {
         margin: 5,
+        color: '#e5e5e5',
     },
     storyCt: {
         marginTop: 10,
-        width: '100%',
+        width: '80%',
         flexDirection: 'row',
         paddingHorizontal: 10,
         paddingVertical: 10,
-        alignItems: 'center',
+        alignSelf: 'center',
         marginBottom: 10,
+        backgroundColor: '#2b2b2b',
+        borderRadius: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.8,
+        shadowRadius: 2,
+        elevation: 5,
     },
     modalContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(26, 26, 26, 0.8)',
     },
     modalContent: {
-        width: 300,
+        width: '80%', // Responsive width
         padding: 20,
-        backgroundColor: 'white',
+        backgroundColor: '#333',
         borderRadius: 10,
         alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.8,
+        shadowRadius: 2,
+        elevation: 5,
     },
     modalTitle: {
         fontSize: 20,
         fontWeight: 'bold',
         marginBottom: 15,
+        color: '#e5e5e5',
     },
     notificationText: {
         fontSize: 16,
         marginBottom: 10,
+        color: '#e5e5e5',
     },
     closeButton: {
         marginTop: 15,

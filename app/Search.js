@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import {View, Text, TextInput, FlatList, StyleSheet, Image, TouchableOpacity} from "react-native";
+import { View, Text, TextInput, FlatList, StyleSheet, Image, TouchableOpacity } from "react-native";
 import { firestore } from "../firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
 import { getStorage, ref, listAll, getDownloadURL } from "firebase/storage";
-import {router} from "expo-router";
+import { router } from "expo-router";
 
 const UsersList = () => {
     const [users, setUsers] = useState([]);
@@ -11,23 +11,17 @@ const UsersList = () => {
     const [filteredUsers, setFilteredUsers] = useState([]);
 
     useEffect(() => {
-        // Firestore'dan emailleri ve profil resimlerini çekme
         const fetchUsers = async () => {
             try {
                 const querySnapshot = await getDocs(collection(firestore, "users"));
-                const storage = getStorage(); // Firebase Storage referansı
+                const storage = getStorage();
                 const userList = await Promise.all(querySnapshot.docs.map(async (doc) => {
-                    const email = doc.id; // Her belgenin ID'si email adresi
-                    const { firstName } = doc.data(); // Firestore'dan firstName alanını al
-
-                    const imageRef = ref(storage, `posts/${email}/profilpicture/`); // Firebase Storage'daki resim yolu
-
+                    const email = doc.id;
+                    const { firstName } = doc.data();
+                    const imageRef = ref(storage, `posts/${email}/profilpicture/`);
                     try {
-                        // Klasördeki tüm dosyaları listele
                         const result = await listAll(imageRef);
                         let imageUrl = null;
-
-                        // Eğer klasörde dosya varsa, ilk dosyanın URL'sini al
                         if (result.items.length > 0) {
                             const firstFileRef = result.items[0];
                             imageUrl = await getDownloadURL(firstFileRef);
@@ -35,7 +29,7 @@ const UsersList = () => {
                         return { email, firstName, imageUrl };
                     } catch (error) {
                         console.error("Error fetching image URL: ", error);
-                        return { email, firstName, imageUrl: null }; // Resim yoksa imageUrl null olur
+                        return { email, firstName, imageUrl: null };
                     }
                 }));
                 setUsers(userList);
@@ -43,14 +37,12 @@ const UsersList = () => {
                 console.error("Error fetching users: ", error);
             }
         };
-
         fetchUsers();
     }, []);
 
     useEffect(() => {
-        // Arama sorgusuna göre kullanıcıları filtreleme
         if (searchQuery.trim() === '') {
-            setFilteredUsers([]); // Arama çubuğu boşken listeyi temizle
+            setFilteredUsers([]);
         } else {
             const filtered = users.filter(user =>
                 user.email.toLowerCase().includes(searchQuery.toLowerCase())
@@ -67,6 +59,7 @@ const UsersList = () => {
                 value={searchQuery}
                 onChangeText={text => setSearchQuery(text)}
                 style={styles.searchBar}
+                placeholderTextColor="#ccc"
             />
             {searchQuery.trim() !== '' && (
                 <FlatList
@@ -81,7 +74,7 @@ const UsersList = () => {
                         }}>
                             <View style={styles.emailContainer}>
                                 <Image
-                                    source={item.imageUrl ? { uri: item.imageUrl } : require('../image/profileicon.png')} // Profil resmi ya da default resim
+                                    source={item.imageUrl ? { uri: item.imageUrl } : require('../image/profileicon.png')}
                                     style={styles.profileImage}
                                 />
                                 <Text style={styles.emailText}>{item.email}</Text>
@@ -97,41 +90,46 @@ const UsersList = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 20,
-        backgroundColor: '#fff',
+        padding: 40,
+        backgroundColor: '#1a1a1a',
     },
     headerText: {
-        fontSize: 24,
+        fontSize: 28,
         fontWeight: 'bold',
         marginBottom: 20,
         textAlign: 'center',
-        color: '#333',
+        color: '#f2f2f2',
     },
     searchBar: {
-        height: 40,
-        borderColor: '#ccc',
+        height: 45,
+        borderColor: '#333',
         borderWidth: 1,
-        borderRadius: 5,
-        paddingHorizontal: 10,
+        borderRadius: 12,
+        paddingHorizontal: 15,
         marginBottom: 20,
-        backgroundColor: '#f0f0f0',
+        backgroundColor: '#333',
+        color: '#fff',
     },
     emailContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 10,
+        paddingVertical: 12,
+        paddingHorizontal: 15,
         borderBottomWidth: 1,
-        borderBottomColor: '#ddd',
+        borderBottomColor: '#444',
+        backgroundColor: '#2a2a2a',
+        borderRadius: 15,
+        marginBottom: 10,
     },
     profileImage: {
-        width: 70,
-        height: 70,
-        borderRadius: 20,
-        marginRight: 10,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        marginRight: 15,
     },
     emailText: {
         fontSize: 18,
-        color: '#333',
+        color: '#f2f2f2',
     }
 });
 

@@ -1,14 +1,15 @@
 import { useLocalSearchParams } from "expo-router";
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, useWindowDimensions, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome6';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, getDoc } from 'firebase/firestore';
 import { firestore } from '../firebaseConfig';
 import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import useUserStore from "../store";
+import Feather from "react-native-vector-icons/Feather";
 
 const UserProfile = () => {
     const { firstName, userEmail } = useLocalSearchParams();
@@ -19,7 +20,11 @@ const UserProfile = () => {
     const [error, setError] = useState(null);
     const [refreshing, setRefreshing] = useState(false);
     const [postCount, setPostCount] = useState(0);
+    const [followingCount,setFollowingCount] = useState(0);
+    const [followersCount,setFollowersCount] = useState(0);
     const [profilePicture, setProfilePicture] = useState(null);
+    const [isFollowing, setIsFollowing] = useState(false); // Arkadaş olup olmadığını takip etmek için
+    const [isRequestSent, setIsRequestSent] = useState(false); // İstek gönderilip gönderilmediğini takip etmek için
     const insets = useSafeAreaInsets();
 
     const fetchProfilePicture = async () => {
@@ -33,29 +38,66 @@ const UserProfile = () => {
                 const imageUrl = await getDownloadURL(firstFileRef);
                 setProfilePicture(imageUrl);
             } else {
-                setProfilePicture(null); // If no image is found, set it to null or a default image
+                setProfilePicture(null); // Eğer resim yoksa null veya varsayılan bir resim ayarlayın
             }
         } catch (error) {
-            console.error("Error fetching profile picture: ", error);
+            console.error("Profil resmi getirilirken hata oluştu: ", error);
         }
     };
 
+
+
     useEffect(() => {
-        console.log("User's first name:", firstName);
-        fetchProfilePicture(); // Fetch the profile picture when the component mounts
+        console.log("Kullanıcının adı:", firstName);
+        fetchProfilePicture(); // Bileşen yüklendiğinde profil resmini getir
+        checkIfFollowingOrRequested();// Arkadaş olup olmadığını veya istek gönderilip gönderilmediğini kontrol et
     }, [firstName]);
 
     const fetchImages = async () => {
         setLoading(true);
         try {
-            const q = query(collection(firestore, 'post'), where('userEmail', '==', userEmail));
-            const querySnapshot = await getDocs(q);
+            const userDocRef = doc(firestore, `users/${userEmail}`);
+            const userDocSnap = await getDoc(userDocRef);
 
-            const imagesList = querySnapshot.docs.map(doc => doc.data().imageUrl);
+            if (userDocSnap.exists()) {
+                const userData = userDocSnap.data();
+                const currentUserEmail = useUserStore.getState().email;
 
-            setImages(imagesList);
-            setPostCount(imagesList.length);
+                // Postları al
+                const q = query(collection(firestore, 'post'), where('userEmail', '==', userEmail));
+                const querySnapshot = await getDocs(q);
+
+                const imagesList = querySnapshot.docs.map(doc => doc.data().imageUrl);
+
+                // Post sayısını her zaman güncelle
+                setPostCount(imagesList.length);
+
+                // Eğer kullanıcı arkadaş listesinde ise resimleri göster
+                const friendsList = userData.followers || [];
+                if (friendsList.includes(currentUserEmail)) {
+                    setImages(imagesList);
+                } else {
+                    setImages([]); // Takip edilmiyorsa resimler boş
+                }
+
+                // Arkadaş sayısını çekme işlemi
+                const docRef = doc(firestore, `users/${userEmail}`);
+                const docSnap = await getDoc(docRef);
+
+                const userDatas = docSnap.data();
+                const friendsLength = userDatas.following || [];
+                const followersLength = userDatas.followers || [];
+                setFollowingCount(friendsLength.length);
+                setFollowersCount(followersLength.length);
+            } else {
+                console.error("User document does not exist!");
+                setImages([]);
+                setPostCount(0);
+                setFollowingCount(0);
+                setFollowersCount(0)
+            }
         } catch (error) {
+            console.error("FetchImages Error:", error.message);
             setError(error.message);
         } finally {
             setLoading(false);
@@ -63,36 +105,63 @@ const UserProfile = () => {
         }
     };
 
+
     useEffect(() => {
         fetchImages();
     }, []);
 
-    const onRefresh = useCallback(() => {
-        setRefreshing(true);
-        fetchImages();
-    }, []);
-
-    // Update followRequest field
-    const updateFollowRequest = async () => {
+    const checkIfFollowingOrRequested = async () => {
         try {
-            const { firstName } = useUserStore.getState();
-            const { email} = useUserStore.getState();
-            const userDocRef = doc(firestore, "users", userEmail);
-
-            // Check if the user's first name already exists in the followRequest array
-            await updateDoc(userDocRef, {
-                notification: arrayUnion(firstName +" "+ email )
-            });
-
-            console.log("Follow request updated successfully!");
+            const userDocRef = doc(firestore, `users/${userEmail}`);
+            const userDocSnap = await getDoc(userDocRef);
+            const { firstName, email } = useUserStore.getState();
+            if (userDocSnap.exists()) {
+                const userData = userDocSnap.data();
+                const friendsList = userData.followers || [];
+                const requestList = userData.request || [];
+                const currentUserEmail = firstName + ' ' + email;
+                if (friendsList.includes(email)) {
+                    setIsFollowing(true);
+                } else if (requestList.includes(currentUserEmail)) {
+                    setIsRequestSent(true);
+                } else {
+                    setIsFollowing(false);
+                    setIsRequestSent(false);
+                }
+            }
         } catch (error) {
-            console.error("Error updating follow request: ", error);
+            console.error("Takip durumu kontrol edilirken hata oluştu: ", error);
         }
     };
 
-    const handleFollowPress = () => {
-        updateFollowRequest();
+    // Takip isteği güncelleme
+    const updateFollowRequest = async () => {
+        try {
+            const { firstName, email } = useUserStore.getState();
+            const userDocRef = doc(firestore, "users", userEmail);
+
+            await updateDoc(userDocRef, {
+                request: arrayUnion(firstName + ' ' + email)
+            });
+
+            setIsRequestSent(true);
+            console.log("Takip isteği başarıyla güncellendi!");
+        } catch (error) {
+            console.error("Takip isteği güncellenirken hata oluştu: ", error);
+        }
     };
+
+    // Takip etme düğmesine basıldığında
+    const handleFollowPress = () => {
+        if (!isFollowing && !isRequestSent) {
+            updateFollowRequest();
+        }
+    };
+
+    useEffect(() => {
+        fetchProfilePicture();
+        checkIfFollowingOrRequested();
+    }, [firstName, userEmail]);
 
     if (error) {
         return (
@@ -111,8 +180,8 @@ const UserProfile = () => {
             );
         }
 
-        const itemWidth = width / 3 - 10; // Width for 3 items in a row
-        const itemHeight = width / 3;     // Height to maintain aspect ratio
+        const itemWidth = width / 3 - 10;
+        const itemHeight = width / 3;
 
         return images.map((item, index) => (
             <View key={index} style={[styles.imageContainer, { width: itemWidth, height: itemHeight }]}>
@@ -122,108 +191,174 @@ const UserProfile = () => {
     };
 
     return (
-        <ScrollView style={styles.container}>
-            <View style={{ backgroundColor: 'black', height: 200 }}>
+        <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: insets.bottom }}>
+            <View style={styles.headerContainer}>
                 <Image
-                    style={{ width: '100%', height: '100%' }}
+                    style={styles.headerImage}
                     source={require('../image/bg.jpg')}
                 />
-                <View style={styles.profileImageContainer}>
-                    <Image
-                        source={profilePicture ? { uri: profilePicture } : require('../image/profileicon.png')}
-                        style={styles.profileImage}
-                    />
+                <View style={styles.profileAndStatsContainer}>
+                    <View style={styles.profileImageWrapper}>
+                        <Image
+                            source={profilePicture ? { uri: profilePicture } : require('../image/profileicon.png')}
+                            style={styles.profileImage}
+                        />
+                    </View>
+                    <View style={styles.userStats}>
+                        <View style={styles.statsItem}>
+                            <Text style={styles.statsValue}>{followingCount}</Text>
+                            <Text style={styles.statsLabel}>Following</Text>
+                        </View>
+                        <View style={styles.statsItem}>
+                            <Text style={styles.statsValue}>{followersCount}</Text>
+                            <Text style={styles.statsLabel}>Followers</Text>
+                        </View>
+                        <View style={styles.statsItem}>
+                            <Text style={styles.statsValue}>{postCount}</Text>
+                            <Text style={styles.statsLabel}>Posts</Text>
+                        </View>
+                    </View>
                 </View>
-            </View>
-            <View style={{ marginTop: 60, alignSelf: 'center', width: '80%' }}>
-                <Text style={{ fontWeight: '500', fontSize: 20, textAlign: 'center', color: 'white' }}>
-                    {firstName}
-                </Text>
-                <Text style={{ textAlign: 'center', color: '#a9a9a9' }}>
-                    I'm delighted to introduce myself as a professional model
-                </Text>
-            </View>
-            <View style={styles.userInfoCt}>
-                <View style={{ width: '33.33%', borderRightWidth: 0.3 }}>
-                    <Text style={styles.userInfo}>357K</Text>
-                    <Text style={{ textAlign: 'center', color: '#a9a9a9' }}>Following</Text>
-                </View>
-                <View style={{ width: '33.33%' }}>
-                    <Text style={styles.userInfo}>357K</Text>
-                    <Text style={{ textAlign: 'center', color: '#a9a9a9' }}>Followers</Text>
-                </View>
-                <View style={{ width: '33.33%', borderLeftWidth: 0.3 }}>
-                    <Text style={styles.userInfo}>{postCount}</Text>
-                    <Text style={{ textAlign: 'center', color: '#a9a9a9' }}>Posts</Text>
-                </View>
-            </View>
-            <TouchableOpacity
-                style={{ borderWidth: 1, width: '90%', paddingVertical: 10, backgroundColor: 'blue', alignSelf: 'center' }}
-                onPress={handleFollowPress}
-            >
-                <Text style={{ color: 'white', textAlign: 'center' }}>Follow</Text>
-            </TouchableOpacity>
-            <View style={styles.iconContainer}>
-                <TouchableOpacity
-                    style={{ width: 70, alignItems: 'center' }}
-                    onPress={() => setSelectedIcon('heart')}
-                >
-                    <Icon name={'heart'} size={25} color={selectedIcon === 'heart' ? 'white' : '#a9a9a9'} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={{ width: 70, alignItems: 'center' }}
-                    onPress={() => setSelectedIcon('videocam')}
-                >
-                    <Ionicons name={'videocam-outline'} size={25} color={selectedIcon === 'videocam' ? 'white' : '#a9a9a9'} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={{ width: 70, alignItems: 'center' }}
-                    onPress={() => setSelectedIcon('heart2')}
-                >
-                    <Icon name={'heart'} size={25} color={selectedIcon === 'heart2' ? 'white' : '#a9a9a9'} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={{ width: 70, alignItems: 'center' }}
-                    onPress={() => setSelectedIcon('bookmark')}
-                >
-                    <MaterialIcons name={'bookmark-outline'} size={25} color={selectedIcon === 'bookmark' ? 'white' : '#a9a9a9'} />
-                </TouchableOpacity>
-            </View>
 
+            </View>
+            <View style={styles.userInfoContainer}>
+                <View style={styles.profileInfo}>
+                    <Text style={styles.profileName}>{firstName}</Text>
+                    <Text style={styles.profileBio}>Kullanıcının kendisini açıkladığı kısım bu kısım</Text>
+                    <TouchableOpacity
+                        style={[
+                            styles.followButton,
+                            { backgroundColor: isFollowing ? '#270f0f' : isRequestSent ? 'orange' : '#950101' }
+                        ]}
+                        onPress={handleFollowPress}
+                        disabled={isFollowing || isRequestSent} // Eğer kullanıcı takip ediyorsa veya istekte bulunduysa buton disable olsun
+                    >
+                        <Text style={styles.followButtonText}>
+                            {isFollowing ? 'Already Following' : isRequestSent ? 'Request Sent' : 'Follow'}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+                <View style={styles.iconContainer}>
+                    <TouchableOpacity style={styles.iconButton} onPress={() => setSelectedIcon('heart')}>
+                        <Icon name={'heart'} size={25} color={selectedIcon === 'heart' ? 'white' : '#a9a9a9'} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.iconButton} onPress={() => setSelectedIcon('videocam')}>
+                        <Ionicons name={'videocam-outline'} size={25} color={selectedIcon === 'videocam' ? 'white' : '#a9a9a9'} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.iconButton} onPress={() => setSelectedIcon('bookmark')}>
+                        <MaterialIcons name={'bookmark-outline'} size={25} color={selectedIcon === 'bookmark' ? 'white' : '#a9a9a9'} />
+                    </TouchableOpacity>
+                </View>
+            </View>
             <View style={styles.imageGrid}>
                 {renderImages()}
             </View>
         </ScrollView>
     );
-}
+};
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#000'
+        backgroundColor: '#1a1a1a',
     },
-    profileImageContainer: {
+    profileAndStatsContainer: {
+        flexDirection: 'row',
         alignItems: 'center',
-        marginTop: -50, // To move the profile image up
+        justifyContent: 'space-between',
+        paddingHorizontal:15,
+    },
+    profileImageWrapper: {
+        flexDirection: 'row',
+        justifyContent:'center',
+        alignItems: 'center',
+        bottom:50,
     },
     profileImage: {
-        borderWidth: 1,
-        borderColor: 'white',
         width: 100,
         height: 100,
         borderRadius: 50,
     },
-    userInfoCt: {
+    editIcon: {
+        position:'absolute',
+        alignSelf:'flex-end',
+        backgroundColor:'rgba(0,0,0,0.7)',
+        padding:5,
+        borderRadius:20,
+        bottom:-12
+    },
+    userStats: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginTop: 20,
+        flex: 1,
     },
-    userInfo: {
+    statsItem: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    followButton: {
+        alignSelf: 'baseline',
+        borderRadius: 9,
+        width: '60%',
+        paddingVertical: 8,
+    },
+    followButtonText: {
+        textAlign: 'center',
+        color: 'white',
+        fontWeight: '500',
+    },
+    statsValue: {
         fontWeight: '500',
         fontSize: 17,
         textAlign: 'center',
-        paddingVertical: 2,
+        color: 'white',
+    },
+    statsLabel: {
+        textAlign: 'center',
+        color: '#a9a9a9',
+    },
+    headerContainer: {
+        backgroundColor: 'black',
+        height: 200,
+        position: 'relative',
+    },
+    headerImage: {
         width: '100%',
-        color: 'white'
+        height: '100%',
+    },
+    profileImageContainer: {
+        alignItems: 'center',
+    },
+    userInfoContainer: {
+        marginTop: 60,
+        alignSelf: 'center',
+        width: '80%',
+    },
+    profileInfo: {
+        alignItems: 'baseline',
+        borderColor:'white',
+        borderWidth:0
+    },
+    profileName: {
+        fontWeight: '500',
+        fontSize: 20,
+        textAlign: 'center',
+        color: 'white',
+    },
+    profileBio: {
+        textAlign: 'center',
+        color: '#a9a9a9',
+        marginVertical: 10,
+    },
+    logoutButton: {
+        position:'absolute',
+        alignSelf:'flex-end',
+        padding:20,
+        top:30
+    },
+    logoutText: {
+        color: 'white',
+        fontSize: 16,
     },
     iconContainer: {
         flexDirection: 'row',
@@ -235,6 +370,10 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         marginTop: 20,
     },
+    iconButton: {
+        width: 70,
+        alignItems: 'center',
+    },
     imageGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -242,7 +381,7 @@ const styles = StyleSheet.create({
     },
     imageContainer: {
         marginBottom: 10,
-        marginHorizontal: 3
+        marginHorizontal: 3,
     },
     image: {
         width: '100%',
@@ -254,9 +393,16 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginTop: 20,
     },
+    noImagesContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '50%',
+        marginTop: 20,
+    },
     noImagesText: {
-        color: 'white'
-    }
+        color: '#a9a9a9',
+        fontSize: 16,
+    },
 });
-
 export default UserProfile;

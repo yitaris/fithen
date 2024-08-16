@@ -95,27 +95,27 @@ const BottomTabs = () => {
             <Animated.View style={[styles.container, animatedStyle]}>
                 <Animated.View style={[styles.sideIcon, leftIconStyle]}>
                     <TouchableOpacity onPress={() => {router.push('/Search')}}>
-                        <Icon name={'search'} color={'#800000'} size={20} />
+                        <Icon name={'search'} color={'#e5e5e5'} size={20} />
                     </TouchableOpacity>
                 </Animated.View>
                 <Animated.View style={[styles.sideIcon, leftIconStyle2]}>
                     <TouchableOpacity onPress={() => {router.push('/Home')}}>
-                        <Icon name={'home'} color={'#800000'} size={20} />
+                        <Icon name={'home'} color={'#e5e5e5'} size={20} />
                     </TouchableOpacity>
                 </Animated.View>
                 <TouchableOpacity onPress={handlePress} style={styles.bottomContainer}>
                     <Animated.View style={iconAnimatedStyle}>
-                        <Icon name={'plus'} color={'#800000'} size={25} />
+                        <Icon name={'plus'} color={'#e5e5e5'} size={25} />
                     </Animated.View>
                 </TouchableOpacity>
                 <Animated.View style={[styles.sideIcon, rightIconStyle]}>
                     <TouchableOpacity onPress={() => {router.push('/Home')}}>
-                        <Icon name={'camera'} color={'#800000'} size={20} />
+                        <Icon name={'camera'} color={'#e5e5e5'} size={20} />
                     </TouchableOpacity>
                 </Animated.View>
                 <Animated.View style={[styles.sideIcon, rightIconStyle2]}>
                     <TouchableOpacity onPress={() => {router.push('/Profile')}}>
-                        <Icon name={'user'} color={'#800000'} size={20} />
+                        <Icon name={'user'} color={'#e5e5e5'} size={20} />
                     </TouchableOpacity>
                 </Animated.View>
             </Animated.View>
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     container: {
-        backgroundColor: 'rgba(255, 255, 255, 1)',
+        backgroundColor: 'rgba(43,43,43,0.7)',
         justifyContent: 'center',
         alignItems: 'center',
         height: 60,
