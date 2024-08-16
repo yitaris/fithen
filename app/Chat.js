@@ -8,11 +8,12 @@ import { useLocalSearchParams } from 'expo-router';
 const Chat = () => {
     const [messages, setMessages] = useState([]);
     const [text, setText] = useState('');
-    const { firstName } = useUserStore(); // Kullanıcı 1
-    const { name } = useLocalSearchParams(); // Kullanıcı 2
+    const { firstName } = useUserStore(); // Kullanıcı 1'in adı
+    const { name } = useLocalSearchParams(); // Kullanıcı 2'nin adı
 
-    // Kullanıcıların adlarının baş harfleriyle koleksiyon ismi oluşturuluyor
-    const chatId = `${firstName}_${name}_messages`.toLowerCase();
+    // Kullanıcı isimlerini alfabetik olarak sıralıyoruz
+    const sortedNames = [firstName.toLowerCase(), name.toLowerCase()].sort();
+    const chatId = `${sortedNames[0]}_${sortedNames[1]}_messages`; // Alfabetik olarak sıralanmış koleksiyon adı
 
     useEffect(() => {
         const q = query(collection(db, chatId), orderBy('createdAt', 'asc'));
