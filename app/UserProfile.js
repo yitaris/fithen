@@ -239,7 +239,8 @@ const UserProfile = () => {
                                 {isFollowing ? 'Already Following' : isRequestSent ? 'Request Sent' : 'Follow'}
                             </Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={()=>{router.push('/Chat')}} style={[styles.followButton,{backgroundColor:'#5AB2FF'}]}>
+                        <TouchableOpacity onPress={()=>{router.push('/Chat')}}
+                         style={[styles.followButton,{backgroundColor:'#5AB2FF'}]}>
                             <Text style={styles.followButtonText}>Messages</Text>
                         </TouchableOpacity>
                     </View>
