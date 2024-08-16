@@ -191,6 +191,10 @@ const UserProfile = () => {
         ));
     };
 
+    const navigation = ()=>{
+        router.navigate('Chat')
+    }
+
     return (
         <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: insets.bottom }}>
             <View style={styles.headerContainer}>
@@ -239,7 +243,7 @@ const UserProfile = () => {
                                 {isFollowing ? 'Already Following' : isRequestSent ? 'Request Sent' : 'Follow'}
                             </Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={()=>{router.push('/Chat')}}
+                        <TouchableOpacity onPress={navigation}
                          style={[styles.followButton,{backgroundColor:'#5AB2FF'}]}>
                             <Text style={styles.followButtonText}>Messages</Text>
                         </TouchableOpacity>
