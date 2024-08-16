@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
-import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, where } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc } from "firebase/firestore";
 import { db } from '../firebaseConfig';
 import useUserStore from '../store';
 import { useLocalSearchParams } from 'expo-router';
@@ -26,10 +26,10 @@ const Chat = () => {
                     ...doc.data(),
                 }))
                 .filter(message => {
-                    // 1 saatten eski mesajları filtrele
+                    // 1 dakika öncesine kadar olan mesajları al
                     const messageTime = message.createdAt.toDate();
                     const timeDifference = (currentTime - messageTime) / (1000 * 60); // Dakika olarak fark
-                    return timeDifference <= 60; // 1 saatten eski olmayan mesajları al
+                    return timeDifference <= 1; // 1 dakikadan eski olmayan mesajları al
                 });
 
             setMessages(fetchedMessages);
@@ -46,6 +46,15 @@ const Chat = () => {
                 sender: firstName,
             });
             setText('');
+
+            // 1 dakika sonra mesajı silmek için bir zamanlayıcı ayarla
+            setTimeout(async () => {
+                const messagesQuery = query(collection(db, chatId), where('createdAt', '==', new Date()));
+                const snapshot = await getDocs(messagesQuery);
+                snapshot.forEach(async (doc) => {
+                    await deleteDoc(doc.ref);
+                });
+            }, 60000); // 1 dakika (60,000 ms) sonra sil
         }
     };
 
@@ -103,7 +112,7 @@ const styles = StyleSheet.create({
         alignSelf: 'flex-end',
     },
     receivedMessage: {
-        backgroundColor: '#f1f1f1',
+        backgroundColor: 'red',
     },
     messageText: {
         color: '#fff',
