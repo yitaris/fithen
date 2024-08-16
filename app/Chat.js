@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { collection, addDoc, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db } from '../firebaseConfig';
 import useUserStore from '../store';
@@ -8,53 +8,52 @@ import { useLocalSearchParams } from 'expo-router';
 const Chat = () => {
     const [messages, setMessages] = useState([]);
     const [text, setText] = useState('');
-    const { firstName } = useUserStore();
-    const { name } = useLocalSearchParams();
+    const { firstName } = useUserStore(); // Kullanıcı 1
+    const { name } = useLocalSearchParams(); // Kullanıcı 2
 
-    // Combine the initials of firstName and name
-    const initials = `${firstName[0]}${name[0]}`.toUpperCase();
-    console.log("Initials:", initials);
+    // Kullanıcıların adlarının baş harfleriyle koleksiyon ismi oluşturuluyor
+    const chatId = `${firstName}_${name}_messages`.toLowerCase();
 
     useEffect(() => {
-        const collectionName = `${initials}_messages`;
-        const q = query(collection(db, collectionName), orderBy('createdAt', 'asc'));
+        const q = query(collection(db, chatId), orderBy('createdAt', 'asc'));
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const messages = snapshot.docs.map(doc => ({
+            const fetchedMessages = snapshot.docs.map(doc => ({
                 id: doc.id,
-                ...doc.data()
+                ...doc.data(),
             }));
-            setMessages(messages);
+            setMessages(fetchedMessages);
         });
 
         return () => unsubscribe();
-    }, [initials]);
+    }, [chatId]);
 
     const handleSend = async () => {
-        if (text.length > 0) {
-            const collectionName = `${initials}_messages`;
-            await addDoc(collection(db, collectionName), {
+        if (text.trim().length > 0) {
+            await addDoc(collection(db, chatId), {
                 text: text,
                 createdAt: new Date(),
                 sender: firstName,
             });
-            setText('');
+            setText(''); // Mesaj gönderildikten sonra input sıfırlanıyor
         }
     };
 
     const renderItem = ({ item }) => (
-        <View style={styles.message}>
-            <Text>{item.text}</Text>
+        <View style={[styles.messageContainer, item.sender === firstName ? styles.sentMessage : styles.receivedMessage]}>
+            <Text style={styles.messageText}>{item.text}</Text>
         </View>
     );
 
     return (
-        <View style={styles.container}>
-            <Text>{firstName}</Text>
-            <Text>{name}</Text>
+        <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.container}
+        >
             <FlatList
                 data={messages}
                 renderItem={renderItem}
-                keyExtractor={item => item.id}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.messagesList}
             />
             <View style={styles.inputContainer}>
                 <TextInput
@@ -62,26 +61,41 @@ const Chat = () => {
                     value={text}
                     onChangeText={setText}
                     placeholder="Type your message..."
+                    placeholderTextColor="#aaa"
                 />
                 <TouchableOpacity onPress={handleSend} style={styles.sendButton}>
                     <Text style={styles.sendButtonText}>Send</Text>
                 </TouchableOpacity>
             </View>
-        </View>
+        </KeyboardAvoidingView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 10,
-        backgroundColor: '#fff',
+        backgroundColor: '#1a1a1a',
     },
-    message: {
+    messagesList: {
         padding: 10,
-        backgroundColor: '#f1f1f1',
-        borderRadius: 5,
+        paddingBottom: 100, // Alt kısımda boşluk bırakmak için
+    },
+    messageContainer: {
+        padding: 10,
+        borderRadius: 15,
         marginVertical: 5,
+        maxWidth: '80%',
+        alignSelf: 'flex-start',
+    },
+    sentMessage: {
+        backgroundColor: '#0078fe',
+        alignSelf: 'flex-end',
+    },
+    receivedMessage: {
+        backgroundColor: '#f1f1f1',
+    },
+    messageText: {
+        color: '#fff',
     },
     inputContainer: {
         flexDirection: 'row',
@@ -89,22 +103,23 @@ const styles = StyleSheet.create({
         padding: 10,
         borderTopWidth: 1,
         borderColor: '#ccc',
-        marginBottom: 100,
+        backgroundColor: '#333',
     },
     input: {
         flex: 1,
         padding: 10,
-        backgroundColor: '#f1f1f1',
-        borderRadius: 5,
+        backgroundColor: '#444',
+        borderRadius: 10,
+        color: '#fff',
         marginRight: 10,
     },
     sendButton: {
         padding: 10,
-        backgroundColor: 'blue',
-        borderRadius: 5,
+        backgroundColor: '#0078fe',
+        borderRadius: 10,
     },
     sendButtonText: {
-        color: 'white',
+        color: '#fff',
         fontSize: 16,
     },
 });
