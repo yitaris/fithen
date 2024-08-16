@@ -191,10 +191,11 @@ const UserProfile = () => {
         ));
     };
 
-    const navigation = ()=>{
-        router.navigate('/Chat')
-    }
-
+    const navigation = () => {
+        router.push({
+            pathname: '/Chat',
+            params: { userEmail: userEmail, name: firstName }
+        });    };
     return (
         <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: insets.bottom }}>
             <View style={styles.headerContainer}>
