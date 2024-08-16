@@ -10,6 +10,7 @@ import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import useUserStore from "../store";
 import Feather from "react-native-vector-icons/Feather";
+import {router} from "expo-router";
 
 const UserProfile = () => {
     const { firstName, userEmail } = useLocalSearchParams();
