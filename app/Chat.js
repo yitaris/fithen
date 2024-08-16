@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
-import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, getDocs } from "firebase/firestore";
 import { db } from '../firebaseConfig';
 import useUserStore from '../store';
 import { useLocalSearchParams } from 'expo-router';
@@ -40,7 +40,7 @@ const Chat = () => {
 
     const handleSend = async () => {
         if (text.trim().length > 0) {
-            await addDoc(collection(db, chatId), {
+            const messageRef = await addDoc(collection(db, chatId), {
                 text: text,
                 createdAt: new Date(),
                 sender: firstName,
@@ -49,11 +49,7 @@ const Chat = () => {
 
             // 1 dakika sonra mesajı silmek için bir zamanlayıcı ayarla
             setTimeout(async () => {
-                const messagesQuery = query(collection(db, chatId), where('createdAt', '==', new Date()));
-                const snapshot = await getDocs(messagesQuery);
-                snapshot.forEach(async (doc) => {
-                    await deleteDoc(doc.ref);
-                });
+                await deleteDoc(messageRef);
             }, 60000); // 1 dakika (60,000 ms) sonra sil
         }
     };
