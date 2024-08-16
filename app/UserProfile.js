@@ -192,7 +192,7 @@ const UserProfile = () => {
     };
 
     const navigation = ()=>{
-        router.navigate('Chat')
+        router.navigate('/Chat')
     }
 
     return (
@@ -210,11 +210,21 @@ const UserProfile = () => {
                         />
                     </View>
                     <View style={styles.userStats}>
-                        <TouchableOpacity style={styles.statsItem}>
+                        <TouchableOpacity onPress={() => {
+                            router.push({
+                                pathname: '/showFriend',
+                                params: { userEmail: userEmail,check:'following'}
+                            });
+                        }} style={styles.statsItem}>
                             <Text style={styles.statsValue}>{followingCount}</Text>
                             <Text style={styles.statsLabel}>Following</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.statsItem}>
+                        <TouchableOpacity onPress={() => {
+                            router.push({
+                                pathname: '/showFriend',
+                                params: { userEmail: userEmail,check:'followers'}
+                            });
+                        }} style={styles.statsItem}>
                             <Text style={styles.statsValue}>{followersCount}</Text>
                             <Text style={styles.statsLabel}>Followers</Text>
                         </TouchableOpacity>
