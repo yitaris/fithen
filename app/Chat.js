@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
-import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, setDoc, getDocs } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, setDoc, getDoc, getDocs } from "firebase/firestore";
 import { db } from '../firebaseConfig';
 import useUserStore from '../store';
 import { useLocalSearchParams } from 'expo-router';
@@ -18,17 +18,10 @@ const Chat = () => {
         const q = query(collection(db, chatId), orderBy('createdAt', 'asc'));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const currentTime = new Date();
-            const fetchedMessages = snapshot.docs
-                .map(doc => ({
-                    id: doc.id,
-                    ...doc.data(),
-                }))
-                .filter(message => {
-                    const messageTime = message.createdAt.toDate();
-                    const timeDifference = (currentTime - messageTime) / (1000 * 60); // Dakika olarak fark
-                    return timeDifference <= 1; // 1 dakikadan eski olmayan mesajları al
-                });
+            const fetchedMessages = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+            }));
 
             setMessages(fetchedMessages);
         });
@@ -42,10 +35,9 @@ const Chat = () => {
             await setDoc(onlineRef, { online: true, lastSeen: new Date() }, { merge: true });
         };
 
-        const unsubscribe = onSnapshot(doc(db, 'onlineUsers', name), (docSnapshot) => {
+        const unsubscribe = onSnapshot(doc(db, 'onlineUsers', name), async (docSnapshot) => {
             if (docSnapshot.exists() && docSnapshot.data().online) {
-                // Diğer kişi online olduğunda mesajları silme işlemini tetikleyin
-                handleAutoDelete();
+                await handleAutoDelete();
             }
         });
 
@@ -66,7 +58,7 @@ const Chat = () => {
             const messageTime = message.createdAt.toDate();
             const timeDifference = (currentTime - messageTime) / (1000 * 60); // Dakika olarak fark
 
-            if (timeDifference >= 1) {
+            if (timeDifference >= 2) { // Mesajı silmeden önce 2 dakika bekle
                 await deleteDoc(docSnapshot.ref);
             }
         });
@@ -74,23 +66,12 @@ const Chat = () => {
 
     const handleSend = async () => {
         if (text.trim().length > 0) {
-            const messageRef = await addDoc(collection(db, chatId), {
+            await addDoc(collection(db, chatId), {
                 text: text,
                 createdAt: new Date(),
                 sender: firstName,
             });
             setText('');
-
-            setTimeout(async () => {
-                // Mesajı silmek için iki kullanıcının da online olmasını kontrol edin
-                const otherUserDoc = await getDoc(doc(db, 'onlineUsers', name));
-                const currentUserDoc = await getDoc(doc(db, 'onlineUsers', firstName));
-
-                if (otherUserDoc.exists() && currentUserDoc.exists() &&
-                    otherUserDoc.data().online && currentUserDoc.data().online) {
-                    await deleteDoc(messageRef);
-                }
-            }, 60000); // 1 dakika (60,000 ms) sonra sil
         }
     };
 
