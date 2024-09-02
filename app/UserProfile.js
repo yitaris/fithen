@@ -10,7 +10,7 @@ import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import useUserStore from "../store";
 import Feather from "react-native-vector-icons/Feather";
-import {router} from "expo-router";
+import { router } from "expo-router";
 
 const UserProfile = () => {
     const { firstName, userEmail } = useLocalSearchParams();
@@ -21,8 +21,8 @@ const UserProfile = () => {
     const [error, setError] = useState(null);
     const [refreshing, setRefreshing] = useState(false);
     const [postCount, setPostCount] = useState(0);
-    const [followingCount,setFollowingCount] = useState(0);
-    const [followersCount,setFollowersCount] = useState(0);
+    const [followingCount, setFollowingCount] = useState(0);
+    const [followersCount, setFollowersCount] = useState(0);
     const [profilePicture, setProfilePicture] = useState(null);
     const [isFollowing, setIsFollowing] = useState(false); // Arkadaş olup olmadığını takip etmek için
     const [isRequestSent, setIsRequestSent] = useState(false); // İstek gönderilip gönderilmediğini takip etmek için
@@ -195,7 +195,8 @@ const UserProfile = () => {
         router.push({
             pathname: '/Chat',
             params: { userEmail: userEmail, name: firstName }
-        });    };
+        });
+    };
     return (
         <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: insets.bottom }}>
             <View style={styles.headerContainer}>
@@ -214,7 +215,7 @@ const UserProfile = () => {
                         <TouchableOpacity onPress={() => {
                             router.push({
                                 pathname: '/showFriend',
-                                params: { userEmail: userEmail,check:'following'}
+                                params: { userEmail: userEmail, check: 'following' }
                             });
                         }} style={styles.statsItem}>
                             <Text style={styles.statsValue}>{followingCount}</Text>
@@ -223,7 +224,7 @@ const UserProfile = () => {
                         <TouchableOpacity onPress={() => {
                             router.push({
                                 pathname: '/showFriend',
-                                params: { userEmail: userEmail,check:'followers'}
+                                params: { userEmail: userEmail, check: 'followers' }
                             });
                         }} style={styles.statsItem}>
                             <Text style={styles.statsValue}>{followersCount}</Text>
@@ -241,7 +242,7 @@ const UserProfile = () => {
                 <View style={styles.profileInfo}>
                     <Text style={styles.profileName}>{firstName}</Text>
                     <Text style={styles.profileBio}>Kullanıcının kendisini açıkladığı kısım bu kısım</Text>
-                    <View style={{flexDirection:'row',width:'90%',justifyContent:'space-between'}}>
+                    <View style={{ flexDirection: 'row', width: '90%', justifyContent: 'space-between' }}>
                         <TouchableOpacity
                             style={[
                                 styles.followButton,
@@ -255,7 +256,7 @@ const UserProfile = () => {
                             </Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={navigation}
-                         style={[styles.followButton,{backgroundColor:'#5AB2FF'}]}>
+                            style={[styles.followButton, { backgroundColor: '#5AB2FF' }]}>
                             <Text style={styles.followButtonText}>Messages</Text>
                         </TouchableOpacity>
                     </View>
@@ -288,13 +289,13 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal:15,
+        paddingHorizontal: 15,
     },
     profileImageWrapper: {
         flexDirection: 'row',
-        justifyContent:'center',
+        justifyContent: 'center',
         alignItems: 'center',
-        bottom:50,
+        bottom: 50,
     },
     profileImage: {
         width: 100,
@@ -302,12 +303,12 @@ const styles = StyleSheet.create({
         borderRadius: 50,
     },
     editIcon: {
-        position:'absolute',
-        alignSelf:'flex-end',
-        backgroundColor:'rgba(0,0,0,0.7)',
-        padding:5,
-        borderRadius:20,
-        bottom:-12
+        position: 'absolute',
+        alignSelf: 'flex-end',
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        padding: 5,
+        borderRadius: 20,
+        bottom: -12
     },
     userStats: {
         flexDirection: 'row',
@@ -321,7 +322,7 @@ const styles = StyleSheet.create({
     followButton: {
         alignSelf: 'baseline',
         borderRadius: 9,
-        padding:14
+        padding: 14
     },
     followButtonText: {
         textAlign: 'center',
@@ -357,8 +358,8 @@ const styles = StyleSheet.create({
     },
     profileInfo: {
         alignItems: 'baseline',
-        borderColor:'white',
-        borderWidth:0
+        borderColor: 'white',
+        borderWidth: 0
     },
     profileName: {
         fontWeight: '500',
@@ -372,10 +373,10 @@ const styles = StyleSheet.create({
         marginVertical: 10,
     },
     logoutButton: {
-        position:'absolute',
-        alignSelf:'flex-end',
-        padding:20,
-        top:30
+        position: 'absolute',
+        alignSelf: 'flex-end',
+        padding: 20,
+        top: 30
     },
     logoutText: {
         color: 'white',

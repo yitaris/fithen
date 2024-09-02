@@ -1,88 +1,83 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, FlatList, StyleSheet, Image, TouchableOpacity } from "react-native";
-import { firestore } from "../firebaseConfig";
-import { collection, getDocs } from "firebase/firestore";
-import { getStorage, ref, listAll, getDownloadURL } from "firebase/storage";
-import { router } from "expo-router";
+import React from "react";
+import { Image, View, Text, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
 
 const UsersList = () => {
-    const [users, setUsers] = useState([]);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [filteredUsers, setFilteredUsers] = useState([]);
-
-    useEffect(() => {
-        const fetchUsers = async () => {
-            try {
-                const querySnapshot = await getDocs(collection(firestore, "users"));
-                const storage = getStorage();
-                const userList = await Promise.all(querySnapshot.docs.map(async (doc) => {
-                    const email = doc.id;
-                    const { firstName } = doc.data();
-                    const imageRef = ref(storage, `posts/${email}/profilpicture/`);
-                    try {
-                        const result = await listAll(imageRef);
-                        let imageUrl = null;
-                        if (result.items.length > 0) {
-                            const firstFileRef = result.items[0];
-                            imageUrl = await getDownloadURL(firstFileRef);
-                        }
-                        return { email, firstName, imageUrl };
-                    } catch (error) {
-                        console.error("Error fetching image URL: ", error);
-                        return { email, firstName, imageUrl: null };
-                    }
-                }));
-                setUsers(userList);
-            } catch (error) {
-                console.error("Error fetching users: ", error);
-            }
-        };
-        fetchUsers();
-    }, []);
-
-    useEffect(() => {
-        if (searchQuery.trim() === '') {
-            setFilteredUsers([]);
-        } else {
-            const filtered = users.filter(user =>
-                user.email.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-            setFilteredUsers(filtered);
-        }
-    }, [searchQuery, users]);
-
     return (
         <View style={styles.container}>
-            <Text style={styles.headerText}>User Emails</Text>
-            <TextInput
-                placeholder="Search Emails"
-                value={searchQuery}
-                onChangeText={text => setSearchQuery(text)}
-                style={styles.searchBar}
-                placeholderTextColor="#ccc"
-            />
-            {searchQuery.trim() !== '' && (
-                <FlatList
-                    data={filteredUsers}
-                    keyExtractor={(item, index) => index.toString()}
-                    renderItem={({ item }) => (
-                        <TouchableOpacity onPress={() => {
-                            router.push({
-                                pathname: '/UserProfile',
-                                params: { userEmail: item.email, firstName: item.firstName }
-                            });
-                        }}>
-                            <View style={styles.emailContainer}>
-                                <Image
-                                    source={item.imageUrl ? { uri: item.imageUrl } : require('../image/profileicon.png')}
-                                    style={styles.profileImage}
-                                />
-                                <Text style={styles.emailText}>{item.email}</Text>
-                            </View>
-                        </TouchableOpacity>
-                    )}
-                />
-            )}
+            <View style={styles.btnContainer}>
+                <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+                    <TouchableOpacity style={styles.btn}>
+                        <Text style={styles.btnText}>All</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.btn}>
+                        <Text style={styles.btnText}>Cardio</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.btn}>
+                        <Text style={styles.btnText}>Muscle Building</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.btn}>
+                        <Text style={styles.btnText}>Diet</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.btn}>
+                        <Text style={styles.btnText}>Yoga</Text>
+                    </TouchableOpacity>
+                </ScrollView>
+            </View>
+
+            <View style={{ marginTop: 20 }}></View>
+
+            <View style={styles.content}>
+                <View style={styles.textContainer}>
+                    <Text style={styles.titleText}>Cardio</Text>
+                    <Text style={{ fontWeight: '600', fontSize: 30, marginTop: 5, }}>Yoga</Text>
+
+                </View>
+                <View style={styles.imageContainer}>
+                    <Image
+                        style={styles.image}
+                        source={require('../image/yoga.png')}
+                    />
+                </View>
+            </View>
+            <View style={styles.content}>
+                <View style={styles.textContainer}>
+                    <Text style={styles.titleText}>Cardio</Text>
+                    <Text style={{ fontWeight: '600', fontSize: 30, marginTop: 5, }}>Yoga</Text>
+
+                </View>
+                <View style={styles.imageContainer}>
+                    <Image
+                        style={[styles.image, { objectFit: 'cover', width: 200, height: 150 }]}
+                        source={require('../image/runner.png')}
+                    />
+                </View>
+            </View>
+            <View style={styles.content}>
+                <View style={styles.textContainer}>
+                    <Text style={styles.titleText}>Cardio</Text>
+                    <Text style={{ fontWeight: '600', fontSize: 30, marginTop: 5, }}>Yoga</Text>
+
+                </View>
+                <View style={styles.imageContainer}>
+                    <Image
+                        style={styles.image}
+                        source={require('../image/yoga.png')}
+                    />
+                </View>
+            </View>
+            <View style={styles.content}>
+                <View style={styles.textContainer}>
+                    <Text style={styles.titleText}>Cardio</Text>
+                    <Text style={{ fontWeight: '600', fontSize: 30, marginTop: 5, }}>Yoga</Text>
+
+                </View>
+                <View style={styles.imageContainer}>
+                    <Image
+                        style={styles.image}
+                        source={require('../image/yoga.png')}
+                    />
+                </View>
+            </View>
         </View>
     );
 };
@@ -90,47 +85,55 @@ const UsersList = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 40,
-        backgroundColor: '#1a1a1a',
+        backgroundColor: '#fff',
     },
-    headerText: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        textAlign: 'center',
-        color: '#f2f2f2',
+    btnContainer: {
+        marginTop: 50,
     },
-    searchBar: {
-        height: 45,
-        borderColor: '#333',
-        borderWidth: 1,
-        borderRadius: 12,
-        paddingHorizontal: 15,
-        marginBottom: 20,
-        backgroundColor: '#333',
-        color: '#fff',
-    },
-    emailContainer: {
-        flexDirection: 'row',
+    scrollContent: {
+        paddingHorizontal: 10,
         alignItems: 'center',
-        paddingVertical: 12,
+    },
+    btn: {
+        borderWidth: 1,
         paddingHorizontal: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#444',
-        backgroundColor: '#2a2a2a',
-        borderRadius: 15,
-        marginBottom: 10,
+        paddingVertical: 8,
+        borderRadius: 100,
+        marginHorizontal: 5,
+        backgroundColor: '#ddd',
     },
-    profileImage: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        marginRight: 15,
+    btnText: {
+        textAlign: 'center',
     },
-    emailText: {
-        fontSize: 18,
-        color: '#f2f2f2',
-    }
+    content: {
+        marginTop: 8,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        backgroundColor: '#bfcd41',
+        width: '95%',
+        height: 180,
+        borderRadius: 40,
+        alignSelf: 'center',
+    },
+    textContainer: {
+        justifyContent: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 20,
+        width: '50%',
+    },
+    titleText: {
+        fontSize: 16,
+    },
+    imageContainer: {
+        width: '50%',
+        justifyContent: 'flex-end',
+        alignItems: 'center'
+    },
+    image: {
+        width: 180,
+        height: 150,
+
+    },
 });
 
 export default UsersList;
