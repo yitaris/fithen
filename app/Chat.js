@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform, Image } from 'react-native';
-import { collection, addDoc, onSnapshot, query, orderBy, updateDoc, doc, deleteDoc, where, getDocs, getDoc } from "firebase/firestore";
-import { db } from '../firebaseConfig';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform, Image,SafeAreaView } from 'react-native';
+import { collection, addDoc, onSnapshot, query, orderBy, updateDoc, doc } from "firebase/firestore";
+import { db, storage } from '../firebaseConfig'; // Import storage from your firebaseConfig
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // For Firebase Storage
 import useUserStore from '../store';
 import { useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+
 
 const Chat = () => {
     const [messages, setMessages] = useState([]);
@@ -12,7 +14,7 @@ const Chat = () => {
     const { firstName } = useUserStore();
     const { name } = useLocalSearchParams();
 
-    // Kullanıcı isimlerini alfabetik olarak sıralıyoruz
+    // Alphabetically sorting user names for chat ID
     const sortedNames = [firstName.toLowerCase(), name.toLowerCase()].sort();
     const chatId = `${sortedNames[0]}_${sortedNames[1]}_messages`;
 
@@ -24,31 +26,9 @@ const Chat = () => {
                 ...doc.data(),
             }));
             setMessages(fetchedMessages);
-
-            // Eğer son mesajı gönderen kullanıcı kendisi değilse ve mesaja dokunmamışsa süre başlat
-            if (fetchedMessages.length > 0) {
-                const lastMessage = fetchedMessages[fetchedMessages.length - 1];
-                if (lastMessage.sender !== firstName && !lastMessage.saved) {
-                    startDeletionTimer(lastMessage.id);
-                }
-            }
         });
 
         return () => unsubscribe();
-    }, [chatId]);
-
-    // Dokunulmamış mesajları silme işlemi
-    useEffect(() => {
-        const deleteUnsavedMessages = async () => {
-            const unsavedMessagesQuery = query(collection(db, chatId), where('saved', '==', false));
-            const querySnapshot = await getDocs(unsavedMessagesQuery);
-
-            querySnapshot.forEach(async (doc) => {
-                await deleteDoc(doc.ref);
-            });
-        };
-
-        deleteUnsavedMessages(); // Dokunulmamış mesajları uygulama başladığında sil
     }, [chatId]);
 
     const handleSend = async () => {
@@ -57,33 +37,23 @@ const Chat = () => {
                 text: text,
                 createdAt: new Date(),
                 sender: firstName,
-                saved: false, // Mesaj başlangıçta kaydedilmemiş olarak başlar
+                saved: true, // All messages are now saved by default
             });
             setText('');
         }
     };
 
-    const handleSaveMessage = async (messageId) => {
-        const messageRef = doc(db, chatId, messageId);
-        await updateDoc(messageRef, { saved: true }); // Mesaja dokunulduğunda 'saved' alanını true yapar
+    // Function to upload image to Firebase Storage and return the public URL
+    const uploadImageAsync = async (uri) => {
+        const blob = await (await fetch(uri)).blob();
+        const storageRef = ref(storage, `chat_images/${uuid.v4()}`); // Generate a unique name for the image
+
+        await uploadBytes(storageRef, blob);
+        const downloadURL = await getDownloadURL(storageRef);
+        return downloadURL;
     };
 
-    // Mesaj silme zamanlayıcısı
-    const startDeletionTimer = (messageId) => {
-        setTimeout(async () => {
-            const messageRef = doc(db, chatId, messageId);
-            const messageSnapshot = await getDoc(messageRef);
-
-            if (messageSnapshot.exists()) {
-                const messageData = messageSnapshot.data();
-                if (!messageData.saved) {
-                    await deleteDoc(messageRef); // Mesajı sil
-                }
-            }
-        }, 3600000); // 1 saat sonra sil (3600000 ms = 1 saat)
-    };
-
-    // Resim seçme ve gönderme işlemi
+    // Picking image and uploading to Firebase Storage
     const pickImage = async () => {
         let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -93,20 +63,22 @@ const Chat = () => {
         });
 
         if (!result.canceled) {
-            const selectedImage = result.assets[0].uri;
+            const selectedImageUri = result.assets[0].uri;
+            const downloadURL = await uploadImageAsync(selectedImageUri);
+
             await addDoc(collection(db, chatId), {
-                imageUrl: selectedImage,
+                imageUrl: downloadURL,
                 createdAt: new Date(),
                 sender: firstName,
-                saved: false, // Mesaj başlangıçta kaydedilmemiş olarak başlar
+                saved: true, // Images are saved by default
             });
         }
     };
 
     const renderItem = ({ item }) => (
         <TouchableOpacity
-            onPress={() => handleSaveMessage(item.id)} // Mesaja dokunulduğunda kaydet
-            onLongPress={() => Alert.alert("Message Long Pressed!")} // Uzun basma işlemi örneği
+            onPress={() => handleSaveMessage(item.id)} // Handle save when pressed (for future use)
+            onLongPress={() => Alert.alert("Message Long Pressed!")} // Example of long press handling
             style={[styles.messageContainer, item.sender === firstName ? styles.sentMessage : styles.receivedMessage]}
         >
             {item.text ? (
@@ -154,7 +126,7 @@ const styles = StyleSheet.create({
     },
     messagesList: {
         padding: 10,
-        paddingBottom: 100, // Alt kısımda boşluk bırakmak için
+        paddingBottom: 100, // Space at the bottom
     },
     messageContainer: {
         padding: 10,
@@ -185,6 +157,7 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderColor: '#ccc',
         backgroundColor: '#333',
+        marginBottom:100,
     },
     input: {
         flex: 1,

@@ -99,7 +99,7 @@ const BottomTabs = () => {
                     </TouchableOpacity>
                 </Animated.View>
                 <Animated.View style={[styles.sideIcon, leftIconStyle2]}>
-                    <TouchableOpacity onPress={() => {router.push('/Home')}}>
+                    <TouchableOpacity onPress={() => {router.push('/FitHome')}}>
                         <Icon name={'home'} color={'#e5e5e5'} size={20} />
                     </TouchableOpacity>
                 </Animated.View>

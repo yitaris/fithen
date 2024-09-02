@@ -5,7 +5,7 @@ import Onboarding from './Onboarding';
 import SplashScreen from '../components/SplashScreen';
 import Login from './Login';
 import Register from './Register/Register';
-import Home from './Home';
+import FitHome from './FitHome';
 import BottomTabs from "../components/BottomTabs";
 
 const App = () => {
@@ -43,7 +43,7 @@ const App = () => {
   return (
     <View style={styles.container}>
     {userRegistered ? (
-      <Home />
+      <FitHome />
     ) : userLogout ? (
       <Login />
     ) : (
